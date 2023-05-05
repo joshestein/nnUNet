@@ -18,6 +18,8 @@ import numpy as np
 from nnunetv2.imageio.base_reader_writer import BaseReaderWriter
 import SimpleITK as sitk
 
+sitk.ProcessObject.SetGlobalWarningDisplay(False)
+
 
 class SimpleITKIO(BaseReaderWriter):
     supported_file_endings = [".nii.gz", ".nrrd", ".mha"]
