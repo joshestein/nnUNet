@@ -24,7 +24,7 @@ def download_and_install_from_url(url):
 
     home = os.path.expanduser("~")
     random_number = int(time() * 1e7)
-    tempfile = join(home, ".nnunetdownload_%s" % str(random_number))
+    tempfile = join(home, f".nnunetdownload_{str(random_number)}")
 
     try:
         download_file(url=url, local_filename=tempfile, chunk_size=8192 * 16)

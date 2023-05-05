@@ -49,7 +49,7 @@ class Tiff3DIO(BaseReaderWriter):
         for f in image_fnames:
             image = tifffile.imread(f)
             if len(image.shape) != 3:
-                raise RuntimeError("Only 3D images are supported! File: %s" % f)
+                raise RuntimeError(f"Only 3D images are supported! File: {f}")
             images.append(image[None])
 
         # see if aux file can be found
@@ -57,7 +57,7 @@ class Tiff3DIO(BaseReaderWriter):
         if isfile(expected_aux_file):
             spacing = load_json(expected_aux_file)["spacing"]
             assert len(spacing) == 3, (
-                "spacing must have 3 entries, one for each dimension of the image. File: %s" % expected_aux_file
+                f"spacing must have 3 entries, one for each dimension of the image. File: {expected_aux_file}"
             )
         else:
             print(f"WARNING no spacing file found for images {image_fnames}\nAssuming spacing (1, 1, 1).")
@@ -99,7 +99,7 @@ class Tiff3DIO(BaseReaderWriter):
         if isfile(expected_aux_file):
             spacing = load_json(expected_aux_file)["spacing"]
             assert len(spacing) == 3, (
-                "spacing must have 3 entries, one for each dimension of the image. File: %s" % expected_aux_file
+                f"spacing must have 3 entries, one for each dimension of the image. File: {expected_aux_file}"
             )
             assert all([i > 0 for i in spacing]), f"Spacing must be > 0, spacing: {spacing}"
         else:

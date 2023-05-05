@@ -26,11 +26,11 @@ def determine_reader_writer_from_dataset_json(
         try:
             ret = recursive_find_reader_writer_by_name(ioclass_name)
             if verbose:
-                print("Using %s reader/writer" % ret)
+                print(f"Using {ret} reader/writer")
             return ret
         except RuntimeError:
             if verbose:
-                print("Warning: Unable to find ioclass specified in dataset.json: %s" % ioclass_name)
+                print(f"Warning: Unable to find ioclass specified in dataset.json: {ioclass_name}")
             if verbose:
                 print("Trying to automatically determine desired class")
     return determine_reader_writer_from_file_ending(
@@ -49,7 +49,7 @@ def determine_reader_writer_from_file_ending(
                     tmp = rw()
                     _ = tmp.read_images((example_file,))
                     if verbose:
-                        print("Using %s as reader/writer" % rw)
+                        print(f"Using {rw} as reader/writer")
                     return rw
                 except:
                     if verbose:
@@ -58,7 +58,7 @@ def determine_reader_writer_from_file_ending(
                     pass
             else:
                 if verbose:
-                    print("Using %s as reader/writer" % rw)
+                    print(f"Using {rw} as reader/writer")
                 return rw
         else:
             if allow_nonmatching_filename and example_file is not None:
@@ -66,7 +66,7 @@ def determine_reader_writer_from_file_ending(
                     tmp = rw()
                     _ = tmp.read_images((example_file,))
                     if verbose:
-                        print("Using %s as reader/writer" % rw)
+                        print(f"Using {rw} as reader/writer")
                     return rw
                 except:
                     if verbose:
