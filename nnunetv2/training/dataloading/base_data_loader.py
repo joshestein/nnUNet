@@ -8,18 +8,20 @@ from nnunetv2.utilities.label_handling.label_handling import LabelManager
 
 
 class nnUNetDataLoaderBase(DataLoader):
-    def __init__(self,
-                 data: nnUNetDataset,
-                 batch_size: int,
-                 patch_size: Union[List[int], Tuple[int, ...], np.ndarray],
-                 final_patch_size: Union[List[int], Tuple[int, ...], np.ndarray],
-                 label_manager: LabelManager,
-                 oversample_foreground_percent: float = 0.0,
-                 sampling_probabilities: Union[List[int], Tuple[int, ...], np.ndarray] = None,
-                 pad_sides: Union[List[int], Tuple[int, ...], np.ndarray] = None,
-                 probabilistic_oversampling: bool = False):
+    def __init__(
+        self,
+        data: nnUNetDataset,
+        batch_size: int,
+        patch_size: Union[List[int], Tuple[int, ...], np.ndarray],
+        final_patch_size: Union[List[int], Tuple[int, ...], np.ndarray],
+        label_manager: LabelManager,
+        oversample_foreground_percent: float = 0.0,
+        sampling_probabilities: Union[List[int], Tuple[int, ...], np.ndarray] = None,
+        pad_sides: Union[List[int], Tuple[int, ...], np.ndarray] = None,
+        probabilistic_oversampling: bool = False,
+    ):
         super().__init__(data, batch_size, 1, None, True, False, True, sampling_probabilities)
-        assert isinstance(data, nnUNetDataset), 'nnUNetDataLoaderBase only supports dictionaries as data'
+        assert isinstance(data, nnUNetDataset), "nnUNetDataLoaderBase only supports dictionaries as data"
         self.indices = list(data.keys())
 
         self.oversample_foreground_percent = oversample_foreground_percent
@@ -39,8 +41,9 @@ class nnUNetDataLoaderBase(DataLoader):
         self.sampling_probabilities = sampling_probabilities
         self.annotated_classes_key = tuple(label_manager.all_labels)
         self.has_ignore = label_manager.has_ignore_label
-        self.get_do_oversample = self._oversample_last_XX_percent if not probabilistic_oversampling \
-            else self._probabilistic_oversampling
+        self.get_do_oversample = (
+            self._oversample_last_XX_percent if not probabilistic_oversampling else self._probabilistic_oversampling
+        )
 
     def _oversample_last_XX_percent(self, sample_idx: int) -> bool:
         """
@@ -61,8 +64,14 @@ class nnUNetDataLoaderBase(DataLoader):
         seg_shape = (self.batch_size, seg.shape[0], *self.patch_size)
         return data_shape, seg_shape
 
-    def get_bbox(self, data_shape: np.ndarray, force_fg: bool, class_locations: Union[dict, None],
-                 overwrite_class: Union[int, Tuple[int, ...]] = None, verbose: bool = False):
+    def get_bbox(
+        self,
+        data_shape: np.ndarray,
+        force_fg: bool,
+        class_locations: Union[dict, None],
+        overwrite_class: Union[int, Tuple[int, ...]] = None,
+        verbose: bool = False,
+    ):
         # in dataloader 2d we need to select the slice prior to this and also modify the class_locations to only have
         # locations for the given slice
         need_to_pad = self.need_to_pad.copy()
@@ -76,7 +85,7 @@ class nnUNetDataLoaderBase(DataLoader):
 
         # we can now choose the bbox from -need_to_pad // 2 to shape - patch_size + need_to_pad // 2. Here we
         # define what the upper and lower bound can be to then sample form them with np.random.randint
-        lbs = [- need_to_pad[i] // 2 for i in range(dim)]
+        lbs = [-need_to_pad[i] // 2 for i in range(dim)]
         ubs = [data_shape[i] + need_to_pad[i] // 2 + need_to_pad[i] % 2 - self.patch_size[i] for i in range(dim)]
 
         # if not force_fg then we can just sample the bbox randomly from lb and ub. Else we need to make sure we get
@@ -89,14 +98,15 @@ class nnUNetDataLoaderBase(DataLoader):
                 selected_class = self.annotated_classes_key
                 if len(class_locations[selected_class]) == 0:
                     # no annotated pixels in this case. Not good. But we can hardly skip it here
-                    print('Warning! No annotated pixels in image!')
+                    print("Warning! No annotated pixels in image!")
                     selected_class = None
                 # print(f'I have ignore labels and want to pick a labeled area. annotated_classes_key: {self.annotated_classes_key}')
             elif force_fg:
-                assert class_locations is not None, 'if force_fg is set class_locations cannot be None'
+                assert class_locations is not None, "if force_fg is set class_locations cannot be None"
                 if overwrite_class is not None:
-                    assert overwrite_class in class_locations.keys(), 'desired class ("overwrite_class") does not ' \
-                                                                      'have class_locations (missing key)'
+                    assert overwrite_class in class_locations.keys(), (
+                        'desired class ("overwrite_class") does not ' "have class_locations (missing key)"
+                    )
                 # this saves us a np.unique. Preprocessing already did that for all cases. Neat.
                 # class_locations keys can also be tuple
                 eligible_classes_or_regions = [i for i in class_locations.keys() if len(class_locations[i]) > 0]
@@ -104,7 +114,10 @@ class nnUNetDataLoaderBase(DataLoader):
                 # if we have annotated_classes_key locations and other classes are present, remove the annotated_classes_key from the list
                 # strange formulation needed to circumvent
                 # ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()
-                tmp = [i == self.annotated_classes_key if isinstance(i, tuple) else False for i in eligible_classes_or_regions]
+                tmp = [
+                    i == self.annotated_classes_key if isinstance(i, tuple) else False
+                    for i in eligible_classes_or_regions
+                ]
                 if any(tmp):
                     if len(eligible_classes_or_regions) > 1:
                         eligible_classes_or_regions.pop(np.where(tmp)[0][0])
@@ -113,15 +126,18 @@ class nnUNetDataLoaderBase(DataLoader):
                     # this only happens if some image does not contain foreground voxels at all
                     selected_class = None
                     if verbose:
-                        print('case does not contain any foreground classes')
+                        print("case does not contain any foreground classes")
                 else:
                     # I hate myself. Future me aint gonna be happy to read this
                     # 2022_11_25: had to read it today. Wasn't too bad
-                    selected_class = eligible_classes_or_regions[np.random.choice(len(eligible_classes_or_regions))] if \
-                        (overwrite_class is None or (overwrite_class not in eligible_classes_or_regions)) else overwrite_class
+                    selected_class = (
+                        eligible_classes_or_regions[np.random.choice(len(eligible_classes_or_regions))]
+                        if (overwrite_class is None or (overwrite_class not in eligible_classes_or_regions))
+                        else overwrite_class
+                    )
                 # print(f'I want to have foreground, selected class: {selected_class}')
             else:
-                raise RuntimeError('lol what!?')
+                raise RuntimeError("lol what!?")
             voxels_of_that_class = class_locations[selected_class] if selected_class is not None else None
 
             if voxels_of_that_class is not None and len(voxels_of_that_class) > 0:
