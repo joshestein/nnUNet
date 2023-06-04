@@ -1,10 +1,9 @@
+import numpy as np
 import os
+import shutil
+from batchgenerators.utilities.file_and_folder_operations import isfile, join, load_pickle
 from typing import List
 
-import numpy as np
-import shutil
-
-from batchgenerators.utilities.file_and_folder_operations import join, load_pickle, isfile
 from nnunetv2.training.dataloading.utils import get_case_identifiers
 
 
