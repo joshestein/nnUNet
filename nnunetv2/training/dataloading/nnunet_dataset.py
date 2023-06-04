@@ -4,6 +4,7 @@ import shutil
 from batchgenerators.utilities.file_and_folder_operations import isfile, join, load_pickle
 from typing import List
 
+from nnunetv2.training.dataloading.slice_remover import SliceRemover
 from nnunetv2.training.dataloading.utils import get_case_identifiers
 
 
@@ -14,6 +15,7 @@ class nnUNetDataset(object):
         case_identifiers: List[str] = None,
         num_images_properties_loading_threshold: int = 0,
         folder_with_segs_from_previous_stage: str = None,
+        slice_remover: SliceRemover = None,
     ):
         """
         This does not actually load the dataset. It merely creates a dictionary where the keys are training case names and
@@ -58,6 +60,7 @@ class nnUNetDataset(object):
         self.keep_files_open = ("nnUNet_keep_files_open" in os.environ.keys()) and (
             os.environ["nnUNet_keep_files_open"].lower() in ("true", "1", "t")
         )
+        self.slice_remover = slice_remover
         # print(f'nnUNetDataset.keep_files_open: {self.keep_files_open}')
 
     def __getitem__(self, key):
@@ -111,6 +114,9 @@ class nnUNetDataset(object):
             else:
                 seg_prev = np.load(entry["seg_from_prev_stage_file"])["seg"]
             seg = np.vstack((seg, seg_prev[None]))
+
+        if self.slice_remover is not None:
+            data, seg = self.slice_remover.remove_slices(data, seg)
 
         return data, seg, entry["properties"]
 

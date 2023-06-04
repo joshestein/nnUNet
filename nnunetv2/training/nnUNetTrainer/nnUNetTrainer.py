@@ -75,8 +75,17 @@ from nnunetv2.utilities.plans_handling.plans_handler import ConfigurationManager
 
 
 class nnUNetTrainer(object):
-    def __init__(self, plans: dict, configuration: str, fold: int, dataset_json: dict, unpack_dataset: bool = True,
-                 device: torch.device = torch.device('cuda')):
+    def __init__(
+        self,
+        plans: dict,
+        configuration: str,
+        fold: int,
+        dataset_json: dict,
+        unpack_dataset: bool = True,
+        percentage_data: Optional[float] = None,
+        device: torch.device = torch.device("cuda"),
+        slice_remover: SliceRemover = None,
+    ):
         # From https://grugbrain.dev/. Worth a read ya big brains ;-)
 
         # apex predator of grug is complexity
@@ -92,6 +101,7 @@ class nnUNetTrainer(object):
 
         # OK OK I am guilty. But I tried. http://tiny.cc/gzgwuz
 
+        self.percentage_data = percentage_data
         self.is_ddp = dist.is_available() and dist.is_initialized()
         self.local_rank = 0 if not self.is_ddp else dist.get_rank()
 
@@ -125,6 +135,7 @@ class nnUNetTrainer(object):
         self.dataset_json = dataset_json
         self.fold = fold
         self.unpack_dataset = unpack_dataset
+        self.slice_remover = slice_remover
 
         ### Setting all the folder names. We need to make sure things don't crash in case we are just running
         # inference and some of the folders may not be defined!
@@ -645,6 +656,13 @@ class nnUNetTrainer(object):
     def get_tr_and_val_datasets(self):
         # create dataset split
         tr_keys, val_keys = self.do_split()
+
+        if self.percentage_data is not None:
+            # self.print_to_log_file(f"Using {self.percentage_data} training cases")
+            # We sample the first n keys. We could alternatively randomly sample, but this would not produce
+            # deterministic runs.
+            tr_keys = tr_keys[: int(len(tr_keys) * self.percentage_data)]
+            self.print_to_log_file(f"Limited data. Using {len(tr_keys)} training cases")
 
         # load the datasets for training and validation. Note that we always draw random samples so we really don't
         # care about distributing training cases across GPUs.

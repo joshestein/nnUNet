@@ -10,6 +10,7 @@ from typing import Optional, Union
 import nnunetv2
 from nnunetv2.paths import nnUNet_preprocessed
 from nnunetv2.run.load_pretrained_weights import load_pretrained_weights
+from nnunetv2.training.dataloading.slice_remover import SliceRemover
 from nnunetv2.training.nnUNetTrainer.nnUNetTrainer import nnUNetTrainer
 from nnunetv2.utilities.dataset_name_id_conversion import maybe_convert_to_dataset_name
 from nnunetv2.utilities.find_class_by_name import recursive_find_python_class
@@ -35,12 +36,15 @@ def get_trainer_from_args(
     trainer_name: str = "nnUNetTrainer",
     plans_identifier: str = "nnUNetPlans",
     use_compressed: bool = False,
+    percentage_data: Optional[float] = None,
     device: torch.device = torch.device("cuda"),
+    slice_remover: SliceRemover = None,
 ):
     # load nnunet class and do sanity checks
     nnunet_trainer = recursive_find_python_class(
         join(nnunetv2.__path__[0], "training", "nnUNetTrainer"), trainer_name, "nnunetv2.training.nnUNetTrainer"
     )
+
     if nnunet_trainer is None:
         raise RuntimeError(
             f"Could not find requested nnunet trainer {trainer_name} in "
@@ -77,6 +81,8 @@ def get_trainer_from_args(
         dataset_json=dataset_json,
         unpack_dataset=not use_compressed,
         device=device,
+        percentage_data=percentage_data,
+        slice_remover=slice_remover,
     )
     return nnunet_trainer
 
@@ -177,7 +183,9 @@ def run_training(
     continue_training: bool = False,
     only_run_validation: bool = False,
     disable_checkpointing: bool = False,
+    percentage_data: Optional[float] = None,
     device: torch.device = torch.device("cuda"),
+    slice_remover: SliceRemover = None,
 ):
     if isinstance(fold, str):
         if fold != "all":
@@ -215,6 +223,7 @@ def run_training(
                 pretrained_weights,
                 export_validation_probabilities,
                 num_gpus,
+                slice_remover,
             ),
             nprocs=num_gpus,
             join=True,
@@ -227,7 +236,9 @@ def run_training(
             trainer_class_name,
             plans_identifier,
             use_compressed_data,
+            percentage_data,
             device=device,
+            slice_remover=slice_remover,
         )
 
         if disable_checkpointing:
@@ -322,6 +333,12 @@ def run_training_entry():
         "(GPU), 'cpu' (CPU) and 'mps' (Apple M1/M2). Do NOT use this to set which GPU ID! "
         "Use CUDA_VISIBLE_DEVICES=X nnUNetv2_train [...] instead!",
     )
+    parser.add_argument(
+        "--percentage_data",
+        type=float,
+        default=1.0,
+        help="The percentage of data to use for training.",
+    )
     args = parser.parse_args()
 
     assert args.device in [
@@ -343,21 +360,55 @@ def run_training_entry():
     else:
         device = torch.device("mps")
 
-    run_training(
-        args.dataset_name_or_id,
-        args.configuration,
-        args.fold,
-        args.tr,
-        args.p,
-        args.pretrained_weights,
-        args.num_gpus,
-        args.use_compressed,
-        args.npz,
-        args.c,
-        args.val,
-        args.disable_checkpointing,
-        device=device,
-    )
+    if args.dataset_name_or_id == "114":
+        dataset = "MNMs"
+    elif args.dataset_name_or_id == "27":
+        dataset = "ACDC"
+    else:
+        dataset = "unknown"
+
+    for sample_regions in [
+        ("apex", "mid", "base"),
+        ("apex", "mid"),
+        ("mid", "base"),
+        ("apex", "base"),
+        ["apex"],
+        ["mid"],
+        ["base"],
+    ]:
+        slice_remover = SliceRemover(percentage_slices=1.0, sample_regions=sample_regions)
+        wandb_config = {
+            "architecture": "nnUNet",
+            "dataset": dataset,
+            "percentage_data": args.percentage_data,
+            "sample_regions": sample_regions,
+            "dimensions": args.configuration,
+        }
+        wandb.init(
+            project=f"{dataset}-nnUNet-{args.configuration}",
+            config=wandb_config,
+            tags=["limited_data", "restricted_sample_regions"],
+            reinit=True,
+        )
+        # args.percentage_data = percentage_data
+        run_training(
+            args.dataset_name_or_id,
+            args.configuration,
+            args.fold,
+            args.tr,
+            args.p,
+            args.pretrained_weights,
+            args.num_gpus,
+            args.use_compressed,
+            args.npz,
+            args.c,
+            args.val,
+            args.disable_checkpointing,
+            args.percentage_data,
+            device=device,
+            slice_remover=slice_remover,
+        )
+        wandb.finish()
 
 
 if __name__ == "__main__":
