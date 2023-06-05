@@ -40,17 +40,19 @@ class SliceRemover:
         assert data.shape == seg.shape
 
         mask = self.get_mask(data)
+        data_clone = np.memmap.copy(data)
+        seg_clone = np.memmap.copy(seg)
 
         if self.maintain_shape:
             # We zero out everything except the mask
-            data[:, ~mask, ...] = 0.0
-            seg[:, ~mask, ...] = 0.0
+            data_clone[:, ~mask, ...] = 0.0
+            seg_clone[:, ~mask, ...] = 0.0
         else:
             # Keep only the samples from the mask
-            data = data[:, mask, ...]
-            seg = seg[:, mask, ...]
+            data_clone = data[:, mask, ...]
+            seg_clone = seg[:, mask, ...]
 
-        return data, seg
+        return data_clone, seg_clone
 
     def get_mask(self, data):
         slices = data.shape[1]
