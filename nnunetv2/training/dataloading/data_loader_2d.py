@@ -1,4 +1,5 @@
 import numpy as np
+
 from nnunetv2.training.dataloading.base_data_loader import nnUNetDataLoaderBase
 from nnunetv2.training.dataloading.nnunet_dataset import nnUNetDataset
 
@@ -48,7 +49,8 @@ class nnUNetDataLoader2D(nnUNetDataLoaderBase):
             if selected_class_or_region is not None:
                 selected_slice = np.random.choice(properties["class_locations"][selected_class_or_region][:, 1])
             else:
-                selected_slice = np.random.choice(len(data[0]))
+                non_zero_slices = np.unique(np.nonzero(data)[1])
+                selected_slice = np.random.choice(non_zero_slices)
 
             data = data[:, selected_slice]
             seg = seg[:, selected_slice]
