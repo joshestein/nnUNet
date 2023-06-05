@@ -678,7 +678,6 @@ class nnUNetTrainer(object):
             val_keys,
             folder_with_segs_from_previous_stage=self.folder_with_segs_from_previous_stage,
             num_images_properties_loading_threshold=0,
-            slice_remover=self.slice_remover,
         )
         return dataset_tr, dataset_val
 
