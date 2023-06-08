@@ -31,6 +31,7 @@ from typing import List, Optional, Tuple, Union
 
 from nnunetv2.configuration import ANISO_THRESHOLD, default_num_processes
 from nnunetv2.evaluation.evaluate_predictions import compute_metrics_on_folder
+from nnunetv2.evaluation.hausdorff import get_symmetric_hausdorff_per_class
 from nnunetv2.inference.export_prediction import export_prediction_from_logits, resample_and_save
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
 from nnunetv2.inference.sliding_window_prediction import compute_gaussian
@@ -1145,6 +1146,7 @@ class nnUNetTrainer(object):
             mask = None
 
         tp, fp, fn, _ = get_tp_fp_fn_tn(predicted_segmentation_onehot, target, axes=axes, mask=mask)
+        hausdorff_distances = get_symmetric_hausdorff_per_class(predicted_segmentation_onehot, target)
 
         tp_hard = tp.detach().cpu().numpy()
         fp_hard = fp.detach().cpu().numpy()
@@ -1158,7 +1160,13 @@ class nnUNetTrainer(object):
             fp_hard = fp_hard[1:]
             fn_hard = fn_hard[1:]
 
-        return {"loss": l.detach().cpu().numpy(), "tp_hard": tp_hard, "fp_hard": fp_hard, "fn_hard": fn_hard}
+        return {
+            "loss": l.detach().cpu().numpy(),
+            "tp_hard": tp_hard,
+            "fp_hard": fp_hard,
+            "fn_hard": fn_hard,
+            "hausdorff_distances": hausdorff_distances,
+        }
 
     def on_validation_epoch_end(self, val_outputs: List[dict]):
         outputs_collated = collate_outputs(val_outputs)
@@ -1188,10 +1196,14 @@ class nnUNetTrainer(object):
             loss_here = np.mean(outputs_collated["loss"])
 
         global_dc_per_class = [i for i in [2 * i / (2 * i + j + k) for i, j, k in zip(tp, fp, fn)]]
+        hd_per_class = np.sum(outputs_collated["hausdorff_distances"], 0)
         mean_fg_dice = np.nanmean(global_dc_per_class)
+        mean_hd = np.nanmean(hd_per_class)
         self.logger.log("mean_fg_dice", mean_fg_dice, self.current_epoch)
         self.logger.log("dice_per_class_or_region", global_dc_per_class, self.current_epoch)
         self.logger.log("val_losses", loss_here, self.current_epoch)
+        self.logger.log("mean_hd", mean_hd, self.current_epoch)
+        self.logger.log("hausdorff_per_class", hd_per_class, self.current_epoch)
 
     def on_epoch_start(self):
         self.logger.log("epoch_start_timestamps", time(), self.current_epoch)
