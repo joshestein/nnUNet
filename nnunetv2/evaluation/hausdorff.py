@@ -5,9 +5,9 @@ from statistics import mean
 
 
 def get_symmetric_hausdorff_per_class(prediction: torch.tensor, target: torch.tensor):
-    """Calculates the symmetric HD between two tensors. Expects the prediction to be in a B x N x H x W format,
-    where N is the number of dimensions after one-hot encoding. Returns the HD between the two tensors for each
-    one-hot dimension, in dictionary form.
+    """Calculates the symmetric HD between two tensors. Expects the input tensors to be 4D or 5D, with the second
+    dimension corresponding to the number of output classes. Returns the average HD between the two tensors for each
+    class, as an array.
     """
     hausdorff_distances = np.empty(prediction.shape[1])
 
