@@ -1159,6 +1159,7 @@ class nnUNetTrainer(object):
             tp_hard = tp_hard[1:]
             fp_hard = fp_hard[1:]
             fn_hard = fn_hard[1:]
+            hausdorff_distances = hausdorff_distances[1:]
 
         return {
             "loss": l.detach().cpu().numpy(),
