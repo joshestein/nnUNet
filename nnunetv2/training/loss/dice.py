@@ -227,11 +227,9 @@ def _get_dice_for_2d_slices(tp: torch.tensor, fp: torch.tensor, fn: torch.tensor
         part_fp = fp[indices]
         part_fn = fn[indices]
 
-        numerator = 2 * part_tp + EPSILON
-        denominator = 2 * part_tp + part_fp + part_fn + EPSILON
-
-        dice_scores = numerator / denominator
-        dice_per_region[location] = torch.mean(dice_scores, dim=(0, 2, 3)).float().tolist()
+        numerator = torch.sum(2 * part_tp + EPSILON, dim=(0, 2, 3))
+        denominator = torch.sum(2 * part_tp + part_fp + part_fn + EPSILON, dim=(0, 2, 3))
+        dice_per_region[location] = (numerator / denominator).float().tolist()
 
     return dice_per_region
 
@@ -248,14 +246,9 @@ def _get_dice_for_3d_volume(tp: torch.tensor, fp: torch.tensor, fn: torch.tensor
         part_fp = fp[:, :, start_slice:end_slice]
         part_fn = fn[:, :, start_slice:end_slice]
 
-        # numerator = torch.sum(2 * part_tp + EPSILON, dim=(0, 2, 3, 4))
-        # denominator = torch.sum(2 * part_tp + part_fp + part_fn + EPSILON, dim=(0, 2, 3, 4))
-        # dice_per_class = (numerator / denominator).float().tolist()
-        # dice_scores.append(dice_per_class)
-
-        numerator = 2 * part_tp + EPSILON
-        denominator = 2 * part_tp + part_fp + part_fn + EPSILON
-        dice_scores.append(torch.mean(numerator / denominator, dim=(0, 2, 3, 4)).float().tolist())
+        numerator = torch.sum(2 * part_tp + EPSILON, dim=(0, 2, 3, 4))
+        denominator = torch.sum(2 * part_tp + part_fp + part_fn + EPSILON, dim=(0, 2, 3, 4))
+        dice_scores.append((numerator / denominator).float().tolist())
 
     return {"apex": dice_scores[0], "mid": dice_scores[1], "base": dice_scores[2]}
 
