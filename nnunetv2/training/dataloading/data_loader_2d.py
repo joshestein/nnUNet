@@ -11,6 +11,7 @@ class nnUNetDataLoader2D(nnUNetDataLoaderBase):
         data_all = np.zeros(self.data_shape, dtype=np.float32)
         seg_all = np.zeros(self.seg_shape, dtype=np.int16)
         case_properties = []
+        regions = []
 
         for j, current_key in enumerate(selected_keys):
             # oversampling foreground will improve stability of model training, especially if many patches are empty
@@ -51,6 +52,14 @@ class nnUNetDataLoader2D(nnUNetDataLoaderBase):
             else:
                 non_zero_slices = np.unique(np.nonzero(data)[1])
                 selected_slice = np.random.choice(non_zero_slices)
+
+            slices_per_region = data.shape[1] / 3
+            if selected_slice < slices_per_region:
+                regions.append("apex")
+            elif selected_slice < 2 * slices_per_region:
+                regions.append("mid")
+            else:
+                regions.append("base")
 
             data = data[:, selected_slice]
             seg = seg[:, selected_slice]
@@ -105,7 +114,13 @@ class nnUNetDataLoader2D(nnUNetDataLoaderBase):
             data_all[j] = np.pad(data, ((0, 0), *padding), "constant", constant_values=0)
             seg_all[j] = np.pad(seg, ((0, 0), *padding), "constant", constant_values=-1)
 
-        return {"data": data_all, "seg": seg_all, "properties": case_properties, "keys": selected_keys}
+        return {
+            "data": data_all,
+            "seg": seg_all,
+            "properties": case_properties,
+            "keys": selected_keys,
+            "regions": regions,
+        }
 
 
 if __name__ == "__main__":
