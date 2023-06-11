@@ -28,6 +28,9 @@ def get_symmetric_hausdorff_per_class(prediction: torch.tensor, target: torch.te
             prediction = prediction.unsqueeze(2)
             target_onehot = target_onehot.unsqueeze(2)
 
+        prediction = prediction.detach().cpu().numpy()
+        target_onehot = target_onehot.detach().cpu().numpy()
+
         for region_index in range(prediction.shape[1]):
             region_distance = []
             for prediction_item, target_item in zip(prediction[:, region_index], target_onehot[:, region_index]):
