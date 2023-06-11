@@ -1,6 +1,5 @@
-from typing import List
-
 import numpy as np
+from typing import List
 
 
 def collate_outputs(outputs: List[dict]):
@@ -18,6 +17,10 @@ def collate_outputs(outputs: List[dict]):
             collated[k] = np.vstack([o[k][None] for o in outputs])
         elif isinstance(outputs[0][k], list):
             collated[k] = [item for o in outputs for item in o[k]]
+        elif isinstance(outputs[0][k], dict):
+            collated[k] = {k2: [] for k2 in outputs[0][k].keys()}
+            for k2 in outputs[0][k].keys():
+                collated[k][k2] = [o[k][k2] for o in outputs]
         else:
             raise ValueError(
                 f"Cannot collate input of type {type(outputs[0][k])}. "
