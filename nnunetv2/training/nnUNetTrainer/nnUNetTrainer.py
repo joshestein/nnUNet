@@ -64,7 +64,11 @@ from nnunetv2.training.dataloading.utils import get_case_identifiers, unpack_dat
 from nnunetv2.training.logging.nnunet_logger import nnUNetLogger
 from nnunetv2.training.loss.compound_losses import DC_and_BCE_loss, DC_and_CE_loss
 from nnunetv2.training.loss.deep_supervision import DeepSupervisionWrapper
-from nnunetv2.training.loss.dice import get_tp_fp_fn_tn, MemoryEfficientSoftDiceLoss
+from nnunetv2.training.loss.dice import (
+    get_dice_per_region,
+    get_tp_fp_fn_tn,
+    MemoryEfficientSoftDiceLoss,
+)
 from nnunetv2.training.lr_scheduler.polylr import PolyLRScheduler
 from nnunetv2.utilities.collate_outputs import collate_outputs
 from nnunetv2.utilities.default_n_proc_DA import get_allowed_n_proc_DA
@@ -73,6 +77,7 @@ from nnunetv2.utilities.get_network_from_plans import get_network_from_plans
 from nnunetv2.utilities.helpers import dummy_context, empty_cache
 from nnunetv2.utilities.label_handling.label_handling import convert_labelmap_to_one_hot, determine_num_input_channels
 from nnunetv2.utilities.plans_handling.plans_handler import ConfigurationManager, PlansManager
+from nnunetv2.utilities.tensor_utilities import sum_tensor
 
 
 class nnUNetTrainer(object):
@@ -1145,12 +1150,16 @@ class nnUNetTrainer(object):
         else:
             mask = None
 
-        tp, fp, fn, _ = get_tp_fp_fn_tn(predicted_segmentation_onehot, target, axes=axes, mask=mask)
+        tp, fp, fn, _ = get_tp_fp_fn_tn(predicted_segmentation_onehot, target, axes=[], mask=mask)
+        # Although it might be more efficient to return a 'tp', 'fp', 'fn' for each region, it is just too much
+        # overhead to pass around 3 values for 3 regions. So we just compute the dice for each region here.
+        dice_per_region = get_dice_per_region(tp=tp, fp=fp, fn=fn, slice_regions=batch.get("regions", []))
         hausdorff_distances = get_symmetric_hausdorff_per_class(predicted_segmentation_onehot, target)
 
-        tp_hard = tp.detach().cpu().numpy()
-        fp_hard = fp.detach().cpu().numpy()
-        fn_hard = fn.detach().cpu().numpy()
+        tp_hard = sum_tensor(tp, axes, keepdim=False).detach().cpu().numpy()
+        fp_hard = sum_tensor(fp, axes, keepdim=False).detach().cpu().numpy()
+        fn_hard = sum_tensor(fn, axes, keepdim=False).detach().cpu().numpy()
+
         if not self.label_manager.has_regions:
             # if we train with regions all segmentation heads predict some kind of foreground. In conventional
             # (softmax training) there needs tobe one output for the background. We are not interested in the
@@ -1167,6 +1176,7 @@ class nnUNetTrainer(object):
             "fp_hard": fp_hard,
             "fn_hard": fn_hard,
             "hausdorff_distances": hausdorff_distances,
+            "dice_per_region": dice_per_region,
         }
 
     def on_validation_epoch_end(self, val_outputs: List[dict]):
@@ -1200,6 +1210,10 @@ class nnUNetTrainer(object):
         hd_per_class = np.sum(outputs_collated["hausdorff_distances"], 0)
         mean_fg_dice = np.nanmean(global_dc_per_class)
         mean_hd = np.nanmean(hd_per_class)
+
+        for region in outputs_collated["dice_per_region"].keys():
+            outputs_collated["dice_per_region"][region] = np.mean(outputs_collated["dice_per_region"][region], 0)
+
         self.logger.log("mean_fg_dice", mean_fg_dice, self.current_epoch)
         self.logger.log("dice_per_class_or_region", global_dc_per_class, self.current_epoch)
         self.logger.log("val_losses", loss_here, self.current_epoch)

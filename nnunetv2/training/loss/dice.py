@@ -1,9 +1,11 @@
+import torch
+from torch import nn
 from typing import Callable
 
-import torch
 from nnunetv2.utilities.ddp_allgather import AllGatherGrad
 from nnunetv2.utilities.tensor_utilities import sum_tensor
-from torch import nn
+
+EPSILON = 1e-6
 
 
 class SoftDiceLoss(nn.Module):
@@ -192,6 +194,70 @@ def get_tp_fp_fn_tn(net_output, gt, axes=None, mask=None, square=False):
         tn = sum_tensor(tn, axes, keepdim=False)
 
     return tp, fp, fn, tn
+
+
+def get_dice_per_region(
+    tp: torch.tensor, fp: torch.tensor, fn: torch.tensor, slice_regions: list[str]
+) -> dict[str, list[float]]:
+    """Calculates and returns the Dice score for the apical, mid and basal sections of the heart.
+    If slice_regions is empty, the data is expected in a 5D tensor (batch, class, slices, height, width).
+    Otherwise, the data is expected in a 4D tensor (batch, class, height, width), and the slice_regions are used to determine
+    which batch"""
+    assert tp.shape == fp.shape == fn.shape
+
+    if len(slice_regions):
+        return _get_dice_for_2d_slices(tp, fp, fn, slice_regions)
+    else:
+        return _get_dice_for_3d_volume(tp, fp, fn)
+
+
+def _get_dice_for_2d_slices(tp: torch.tensor, fp: torch.tensor, fn: torch.tensor, slice_regions: list[str]):
+    regions = ("apex", "mid", "base")
+
+    # Collect slice indices for each region
+    slice_parts = {location: [] for location in regions}
+    for i, location in enumerate(slice_regions):
+        slice_parts[location].append(i)
+
+    dice_per_region = {location: [] for location in regions}
+
+    # Get the dice for each region
+    for location, indices in slice_parts.items():
+        part_tp = tp[indices]
+        part_fp = fp[indices]
+        part_fn = fn[indices]
+
+        numerator = 2 * part_tp + EPSILON
+        denominator = 2 * part_tp + part_fp + part_fn + EPSILON
+
+        dice_scores = numerator / denominator
+        dice_per_region[location] = torch.mean(dice_scores, dim=(0, 2, 3)).float().tolist()
+
+    return dice_per_region
+
+
+def _get_dice_for_3d_volume(tp: torch.tensor, fp: torch.tensor, fn: torch.tensor):
+    slices_per_region = tp.shape[2] // 3
+
+    dice_scores = []
+    for i in range(3):
+        start_slice = i * slices_per_region
+        end_slice = (i + 1) * slices_per_region
+
+        part_tp = tp[:, :, start_slice:end_slice]
+        part_fp = fp[:, :, start_slice:end_slice]
+        part_fn = fn[:, :, start_slice:end_slice]
+
+        # numerator = torch.sum(2 * part_tp + EPSILON, dim=(0, 2, 3, 4))
+        # denominator = torch.sum(2 * part_tp + part_fp + part_fn + EPSILON, dim=(0, 2, 3, 4))
+        # dice_per_class = (numerator / denominator).float().tolist()
+        # dice_scores.append(dice_per_class)
+
+        numerator = 2 * part_tp + EPSILON
+        denominator = 2 * part_tp + part_fp + part_fn + EPSILON
+        dice_scores.append(torch.mean(numerator / denominator, dim=(0, 2, 3, 4)).float().tolist())
+
+    return {"apex": dice_scores[0], "mid": dice_scores[1], "base": dice_scores[2]}
 
 
 if __name__ == "__main__":
