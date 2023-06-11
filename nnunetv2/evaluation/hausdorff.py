@@ -23,14 +23,20 @@ def get_symmetric_hausdorff_per_class(prediction: torch.tensor, target: torch.te
             target_onehot = torch.zeros(prediction.shape, device=prediction.device)
             target_onehot.scatter_(1, target, 1)
 
+        if len(prediction.shape) == 4:
+            # When we have 2D data, add a dummy depth dimension to avoid conditional behaviour
+            prediction = prediction.unsqueeze(2)
+            target_onehot = target_onehot.unsqueeze(2)
+
         for region_index in range(prediction.shape[1]):
             region_distance = []
-            for index, (prediction_item, target_item) in enumerate(zip(prediction, target_onehot)):
-                hd = max(
-                    directed_hausdorff(prediction_item[region_index], target_item[region_index])[0],
-                    directed_hausdorff(target_item[region_index], prediction_item[region_index])[0],
-                )
-                region_distance.append(hd)
+            for prediction_item, target_item in zip(prediction[:, region_index], target_onehot[:, region_index]):
+                for slice_index in range(prediction_item.shape[0]):
+                    hd = max(
+                        directed_hausdorff(prediction_item[slice_index], target_item[slice_index])[0],
+                        directed_hausdorff(target_item[slice_index], prediction_item[slice_index])[0],
+                    )
+                    region_distance.append(hd)
 
             hausdorff_distances[region_index] = mean(region_distance)
 
