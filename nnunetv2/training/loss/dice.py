@@ -250,7 +250,7 @@ def _get_dice_for_3d_volume(tp: torch.tensor, fp: torch.tensor, fn: torch.tensor
         denominator = torch.sum(2 * part_tp + part_fp + part_fn + EPSILON, dim=(0, 2, 3, 4))
         dice_scores.append((numerator / denominator).float().tolist())
 
-    return {"apex": dice_scores[0], "mid": dice_scores[1], "base": dice_scores[2]}
+    return {"base": dice_scores[0], "mid": dice_scores[1], "apex": dice_scores[2]}
 
 
 if __name__ == "__main__":

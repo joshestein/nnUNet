@@ -55,11 +55,11 @@ class nnUNetDataLoader2D(nnUNetDataLoaderBase):
 
             slices_per_region = data.shape[1] / 3
             if selected_slice < slices_per_region:
-                regions.append("apex")
+                regions.append("base")
             elif selected_slice < 2 * slices_per_region:
                 regions.append("mid")
             else:
-                regions.append("base")
+                regions.append("apex")
 
             data = data[:, selected_slice]
             seg = seg[:, selected_slice]
