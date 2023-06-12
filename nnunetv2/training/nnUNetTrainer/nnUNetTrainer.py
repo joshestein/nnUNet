@@ -1214,7 +1214,8 @@ class nnUNetTrainer(object):
         mean_hd = np.nanmean(hd_per_class)
 
         for region in outputs_collated["dice_per_region"].keys():
-            outputs_collated["dice_per_region"][region] = np.mean(outputs_collated["dice_per_region"][region], 0)
+            # If we want per-class: use axis = 0
+            outputs_collated["dice_per_region"][region] = np.mean(outputs_collated["dice_per_region"][region])
 
         self.logger.log("mean_fg_dice", mean_fg_dice, self.current_epoch)
         self.logger.log("dice_per_class_or_region", global_dc_per_class, self.current_epoch)
