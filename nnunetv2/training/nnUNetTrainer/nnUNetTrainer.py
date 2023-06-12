@@ -1169,6 +1169,8 @@ class nnUNetTrainer(object):
             fp_hard = fp_hard[1:]
             fn_hard = fn_hard[1:]
             hausdorff_distances = hausdorff_distances[1:]
+            for region, dice_values in dice_per_region.items():
+                dice_per_region[region] = dice_values[1:]
 
         return {
             "loss": l.detach().cpu().numpy(),
