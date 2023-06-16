@@ -5,6 +5,7 @@ import os
 import shutil
 import sys
 import torch
+import wandb
 import warnings
 from batchgenerators.dataloading.single_threaded_augmenter import SingleThreadedAugmenter
 from batchgenerators.transforms.abstract_transforms import AbstractTransform, Compose
@@ -664,9 +665,8 @@ class nnUNetTrainer(object):
         tr_keys, val_keys = self.do_split()
 
         if self.percentage_data is not None:
-            # self.print_to_log_file(f"Using {self.percentage_data} training cases")
-            # We sample the first n keys. We could alternatively randomly sample, but this would not produce
-            # deterministic runs.
+            # We sample the first n keys.
+            # We could alternatively randomly sample, but this would not produce deterministic runs.
             tr_keys = tr_keys[: int(len(tr_keys) * self.percentage_data)]
             self.print_to_log_file(f"Limited data. Using {len(tr_keys)} training cases")
 
@@ -1099,6 +1099,7 @@ class nnUNetTrainer(object):
             loss_here = np.mean(outputs["loss"])
 
         self.logger.log("train_losses", loss_here, self.current_epoch)
+        wandb.log({"train_loss": loss_here}, step=self.current_epoch)
 
     def on_validation_epoch_start(self):
         self.network.eval()
@@ -1220,8 +1221,15 @@ class nnUNetTrainer(object):
         self.logger.log("mean_fg_dice", mean_fg_dice, self.current_epoch)
         self.logger.log("dice_per_class_or_region", global_dc_per_class, self.current_epoch)
         self.logger.log("val_losses", loss_here, self.current_epoch)
-        self.logger.log("mean_hd", mean_hd, self.current_epoch)
-        self.logger.log("hausdorff_per_class", hd_per_class, self.current_epoch)
+        wandb.log({"mean_fg_dice": mean_fg_dice}, step=self.current_epoch)
+        wandb.log({f"dice_per_class_{i}": c for c, i in enumerate(global_dc_per_class)}, step=self.current_epoch)
+        wandb.log({"val_loss": loss_here}, step=self.current_epoch)
+        wandb.log({"mean_hd": mean_hd}, step=self.current_epoch)
+        wandb.log({f"hausdorff_per_class_{i}": hd for hd, i in enumerate(hd_per_class)}, step=self.current_epoch)
+        wandb.log(
+            {f"dice_per_region_{region}": dice for dice, region in outputs_collated["dice_per_region"].items()},
+            step=self.current_epoch,
+        )
 
     def on_epoch_start(self):
         self.logger.log("epoch_start_timestamps", time(), self.current_epoch)
