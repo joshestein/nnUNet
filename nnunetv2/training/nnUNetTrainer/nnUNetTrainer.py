@@ -1222,12 +1222,12 @@ class nnUNetTrainer(object):
         self.logger.log("dice_per_class_or_region", global_dc_per_class, self.current_epoch)
         self.logger.log("val_losses", loss_here, self.current_epoch)
         wandb.log({"mean_fg_dice": mean_fg_dice}, step=self.current_epoch)
-        wandb.log({f"dice_per_class_{i}": c for c, i in enumerate(global_dc_per_class)}, step=self.current_epoch)
+        wandb.log({f"dice_per_class_{i}": c for i, c in enumerate(global_dc_per_class)}, step=self.current_epoch)
         wandb.log({"val_loss": loss_here}, step=self.current_epoch)
         wandb.log({"mean_hd": mean_hd}, step=self.current_epoch)
-        wandb.log({f"hausdorff_per_class_{i}": hd for hd, i in enumerate(hd_per_class)}, step=self.current_epoch)
+        wandb.log({f"hausdorff_per_class_{i}": hd for i, hd in enumerate(hd_per_class)}, step=self.current_epoch)
         wandb.log(
-            {f"dice_per_region_{region}": dice for dice, region in outputs_collated["dice_per_region"].items()},
+            {f"dice_per_region_{region}": dice for region, dice in outputs_collated["dice_per_region"].items()},
             step=self.current_epoch,
         )
 
