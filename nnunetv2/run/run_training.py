@@ -364,6 +364,8 @@ def run_training_entry():
         dataset = "MNMs"
     elif args.dataset_name_or_id == "27":
         dataset = "ACDC"
+    elif args.dataset_name_or_id == "115":
+        dataset = "EMIDEC"
     else:
         dataset = "unknown"
 
