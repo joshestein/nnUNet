@@ -32,7 +32,7 @@ from typing import List, Optional, Tuple, Union
 
 from nnunetv2.configuration import ANISO_THRESHOLD, default_num_processes
 from nnunetv2.evaluation.evaluate_predictions import compute_metrics_on_folder
-from nnunetv2.evaluation.hausdorff import get_symmetric_hausdorff_per_class
+from nnunetv2.evaluation.surface_metrics import compute_surface_metrics
 from nnunetv2.inference.export_prediction import export_prediction_from_logits, resample_and_save
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
 from nnunetv2.inference.sliding_window_prediction import compute_gaussian
@@ -1155,7 +1155,9 @@ class nnUNetTrainer(object):
         # Although it might be more efficient to return a 'tp', 'fp', 'fn' for each region, it is just too much
         # overhead to pass around 3 values for 3 regions. So we just compute the dice for each region here.
         dice_per_region = get_dice_per_region(tp=tp, fp=fp, fn=fn, slice_regions=batch.get("regions", []))
-        hausdorff_distances = get_symmetric_hausdorff_per_class(predicted_segmentation_onehot, target)
+        surface_metrics = compute_surface_metrics(
+            predicted_segmentation_onehot, target, self.device, self.configuration_manager.spacing
+        )
 
         tp_hard = sum_tensor(tp, axes, keepdim=False).detach().cpu().numpy()
         fp_hard = sum_tensor(fp, axes, keepdim=False).detach().cpu().numpy()
@@ -1169,7 +1171,6 @@ class nnUNetTrainer(object):
             tp_hard = tp_hard[1:]
             fp_hard = fp_hard[1:]
             fn_hard = fn_hard[1:]
-            hausdorff_distances = hausdorff_distances[1:]
             for region, dice_values in dice_per_region.items():
                 dice_per_region[region] = dice_values[1:]
 
@@ -1178,7 +1179,8 @@ class nnUNetTrainer(object):
             "tp_hard": tp_hard,
             "fp_hard": fp_hard,
             "fn_hard": fn_hard,
-            "hausdorff_distances": hausdorff_distances,
+            "hausdorff_distances": surface_metrics["hausdorff"],
+            "avg_surface_distances": surface_metrics["avg_surface_distance"],
             "dice_per_region": dice_per_region,
         }
 
@@ -1210,9 +1212,11 @@ class nnUNetTrainer(object):
             loss_here = np.mean(outputs_collated["loss"])
 
         global_dc_per_class = [i for i in [2 * i / (2 * i + j + k) for i, j, k in zip(tp, fp, fn)]]
-        hd_per_class = np.sum(outputs_collated["hausdorff_distances"], 0)
+        hd_per_class = np.nanmean(outputs_collated["hausdorff_distances"], axis=0)
+        sd_per_class = np.nanmean(outputs_collated["avg_surface_distances"], axis=0)
         mean_fg_dice = np.nanmean(global_dc_per_class)
         mean_hd = np.nanmean(hd_per_class)
+        mean_sd = np.nanmean(sd_per_class)
 
         for region in outputs_collated["dice_per_region"].keys():
             # If we want per-class: use axis = 0
@@ -1225,7 +1229,11 @@ class nnUNetTrainer(object):
         wandb.log({f"dice_per_class_{i}": c for i, c in enumerate(global_dc_per_class)}, step=self.current_epoch)
         wandb.log({"val_loss": loss_here}, step=self.current_epoch)
         wandb.log({"mean_hd": mean_hd}, step=self.current_epoch)
+        wandb.log({"avg_surface_distance": mean_sd}, step=self.current_epoch)
         wandb.log({f"hausdorff_per_class_{i}": hd for i, hd in enumerate(hd_per_class)}, step=self.current_epoch)
+        wandb.log(
+            {f"avg_surface_distance_per_class_{i}": sd for i, sd in enumerate(sd_per_class)}, step=self.current_epoch
+        )
         wandb.log(
             {f"dice_per_region_{region}": dice for region, dice in outputs_collated["dice_per_region"].items()},
             step=self.current_epoch,
