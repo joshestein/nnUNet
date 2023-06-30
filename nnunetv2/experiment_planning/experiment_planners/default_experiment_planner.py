@@ -1,22 +1,23 @@
-import shutil
-from copy import deepcopy
-from functools import lru_cache
-from typing import List, Union, Tuple, Type
-
 import numpy as np
-from batchgenerators.utilities.file_and_folder_operations import load_json, join, save_json, isfile, maybe_mkdir_p
+import shutil
+from batchgenerators.utilities.file_and_folder_operations import isfile, join, load_json, maybe_mkdir_p, save_json
+from copy import deepcopy
 from dynamic_network_architectures.architectures.unet import PlainConvUNet, ResidualEncoderUNet
 from dynamic_network_architectures.building_blocks.helper import convert_dim_to_conv_op, get_matching_instancenorm
+from functools import lru_cache
+from typing import List, Tuple, Type, Union
 
 from nnunetv2.configuration import ANISO_THRESHOLD
 from nnunetv2.experiment_planning.experiment_planners.network_topology import get_pool_and_conv_props
 from nnunetv2.imageio.reader_writer_registry import determine_reader_writer_from_dataset_json
-from nnunetv2.paths import nnUNet_raw, nnUNet_preprocessed
+from nnunetv2.paths import nnUNet_preprocessed, nnUNet_raw
 from nnunetv2.preprocessing.normalization.map_channel_name_to_normalization import get_normalization_scheme
-from nnunetv2.preprocessing.resampling.default_resampling import resample_data_or_seg_to_shape, compute_new_shape
+from nnunetv2.preprocessing.resampling.default_resampling import compute_new_shape, resample_data_or_seg_to_shape
 from nnunetv2.utilities.dataset_name_id_conversion import maybe_convert_to_dataset_name
 from nnunetv2.utilities.json_export import recursive_fix_for_json_export
-from nnunetv2.utilities.utils import get_identifiers_from_splitted_dataset_folder
+from nnunetv2.utilities.utils import (
+    get_filenames_of_train_images_and_targets,
+)
 
 
 class ExperimentPlanner(object):
@@ -39,6 +40,7 @@ class ExperimentPlanner(object):
         self.raw_dataset_folder = join(nnUNet_raw, self.dataset_name)
         preprocessed_folder = join(nnUNet_preprocessed, self.dataset_name)
         self.dataset_json = load_json(join(self.raw_dataset_folder, "dataset.json"))
+        self.dataset = get_filenames_of_train_images_and_targets(self.raw_dataset_folder, self.dataset_json)
 
         # load dataset fingerprint
         if not isfile(join(preprocessed_folder, "dataset_fingerprint.json")):
@@ -82,17 +84,8 @@ class ExperimentPlanner(object):
         self.plans = None
 
     def determine_reader_writer(self):
-        training_identifiers = get_identifiers_from_splitted_dataset_folder(
-            join(self.raw_dataset_folder, "imagesTr"), self.dataset_json["file_ending"]
-        )
-        return determine_reader_writer_from_dataset_json(
-            self.dataset_json,
-            join(
-                self.raw_dataset_folder,
-                "imagesTr",
-                training_identifiers[0] + "_0000" + self.dataset_json["file_ending"],
-            ),
-        )
+        example_image = self.dataset[self.dataset.keys().__iter__().__next__()]["images"][0]
+        return determine_reader_writer_from_dataset_json(self.dataset_json, example_image)
 
     @staticmethod
     @lru_cache(maxsize=None)
@@ -583,13 +576,13 @@ class ExperimentPlanner(object):
         save_json(plans, plans_file, sort_keys=False)
         print(f"Plans were saved to {join(nnUNet_preprocessed, self.dataset_name, self.plans_identifier + '.json')}")
 
-    def generate_data_identifier(self, confgiuration_name: str) -> str:
+    def generate_data_identifier(self, configuration_name: str) -> str:
         """
         configurations are unique within each plans file but differnet plans file can have configurations with the
         same name. In order to distinguish the assiciated data we need a data identifier that reflects not just the
         config but also the plans it originates from
         """
-        return self.plans_identifier + "_" + confgiuration_name
+        return self.plans_identifier + "_" + configuration_name
 
     def load_plans(self, fname: str):
         self.plans = load_json(fname)

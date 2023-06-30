@@ -1,22 +1,22 @@
-import argparse
 import os.path
-from copy import deepcopy
-from typing import Union, List, Tuple
 
-from batchgenerators.utilities.file_and_folder_operations import load_json, join, isdir, save_json
+import argparse
+from batchgenerators.utilities.file_and_folder_operations import isdir, join, load_json, save_json
+from copy import deepcopy
+from typing import List, Tuple, Union
 
 from nnunetv2.configuration import default_num_processes
 from nnunetv2.ensembling.ensemble import ensemble_crossvalidations
 from nnunetv2.evaluation.accumulate_cv_results import accumulate_cv_results
 from nnunetv2.evaluation.evaluate_predictions import compute_metrics_on_folder, load_summary_json
-from nnunetv2.paths import nnUNet_preprocessed, nnUNet_raw, nnUNet_results
+from nnunetv2.paths import nnUNet_preprocessed, nnUNet_results
 from nnunetv2.postprocessing.remove_connected_components import determine_postprocessing
 from nnunetv2.utilities.file_path_utilities import (
-    maybe_convert_to_dataset_name,
-    get_output_folder,
     convert_identifier_to_trainer_plans_config,
-    get_ensemble_name,
     folds_tuple_to_string,
+    get_ensemble_name,
+    get_output_folder,
+    maybe_convert_to_dataset_name,
 )
 from nnunetv2.utilities.plans_handling.plans_handler import PlansManager
 
@@ -111,7 +111,7 @@ def generate_inference_command(
     if folder_with_segs_from_prev_stage is not None:
         predict_command += f" -prev_stage_predictions {folder_with_segs_from_prev_stage}"
     if save_npz:
-        predict_command += " --npz"
+        predict_command += " --save_probabilities"
     return predict_command
 
 
@@ -174,7 +174,7 @@ def find_best_configuration(
                 rw = plans_manager.image_reader_writer_class()
 
                 compute_metrics_on_folder(
-                    join(nnUNet_raw, dataset_name, "labelsTr"),
+                    join(nnUNet_preprocessed, dataset_name, "gt_segmentations"),
                     output_folder_ensemble,
                     join(output_folder_ensemble, "summary.json"),
                     rw,
@@ -209,7 +209,7 @@ def find_best_configuration(
     print("***Determining postprocessing for best model/ensemble***")
     determine_postprocessing(
         all_results[best_key]["source"],
-        join(nnUNet_raw, dataset_name, "labelsTr"),
+        join(nnUNet_preprocessed, dataset_name, "gt_segmentations"),
         plans_file_or_dict=join(all_results[best_key]["source"], "plans.json"),
         dataset_json_file_or_dict=join(all_results[best_key]["source"], "dataset.json"),
         num_processes=num_processes,
@@ -301,7 +301,7 @@ def print_inference_instructions(inference_info_dict: dict, instructions_file: s
     for j, i in enumerate(inference_info_dict["best_model_or_ensemble"]["selected_model_or_models"]):
         tr, c, pl = i["trainer"], i["configuration"], i["plans_identifier"]
         if is_ensemble:
-            output_folder_name = f"OUTPUT_FOLDER_MODEL_{j+1}"
+            output_folder_name = f"OUTPUT_FOLDER_MODEL_{j + 1}"
         else:
             output_folder_name = f"OUTPUT_FOLDER"
         output_folders.append(output_folder_name)
