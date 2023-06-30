@@ -1,9 +1,12 @@
+import numpy as np
 import os
+import random
 import shutil
+from batchgenerators.utilities.file_and_folder_operations import load_json, save_json
 from pathlib import Path
 
 from nnunetv2.dataset_conversion.generate_dataset_json import generate_dataset_json
-from nnunetv2.paths import nnUNet_raw
+from nnunetv2.paths import nnUNet_preprocessed, nnUNet_raw
 
 
 def make_out_dirs(dataset_id: int, task_name="ACDC"):
@@ -68,6 +71,42 @@ def convert_acdc(src_data_folder: str, dataset_id=27):
     )
 
 
+def create_custom_splits(src_data_folder: Path, dataset_id: int, num_val_cases: int = 40):
+    """Creates two additional splits for validating on only ED or ES frames."""
+    existing_splits = os.path.join(nnUNet_preprocessed, f"Dataset{dataset_id:03d}_ACDC", "splits_final.json")
+    splits = load_json(existing_splits)
+
+    patients_train = sorted([f for f in (src_data_folder / "training").iterdir() if f.is_dir()])
+
+    patient_info = {}
+    for patient_dir in patients_train:
+        config = np.loadtxt(patient_dir / "Info.cfg", dtype=str, delimiter=":")
+        end_diastole = int(config[0, 1])
+        end_systole = int(config[1, 1])
+        patient_info[patient_dir.name] = {"ed": end_diastole, "es": end_systole}
+
+    splits.append(create_split("ed", patient_info, num_val_cases))
+    splits.append(create_split("es", patient_info, num_val_cases))
+    save_json(splits, existing_splits)
+
+
+def create_split(phase_choice: str, patient_info: dict, num_val_cases: int):
+    train, val = [], []
+    keys = list(patient_info.keys())
+    random.shuffle(keys)
+    for i, patient_dir in enumerate(keys):
+        ed_frame = f"{patient_dir}_frame{patient_info[patient_dir]['ed']:02d}"
+        es_frame = f"{patient_dir}_frame{patient_info[patient_dir]['es']:02d}"
+        if i < num_val_cases:
+            val.append(ed_frame if phase_choice == "ed" else es_frame)
+            train.append(es_frame if phase_choice == "ed" else ed_frame)
+        else:
+            train.append(ed_frame)
+            train.append(es_frame)
+
+    return {"train": train, "val": val}
+
+
 if __name__ == "__main__":
     import argparse
 
@@ -81,7 +120,22 @@ if __name__ == "__main__":
     parser.add_argument(
         "-d", "--dataset_id", required=False, type=int, default=27, help="nnU-Net Dataset ID, default: 27"
     )
+    parser.add_argument(
+        "-s",
+        "--custom-splits",
+        required=False,
+        type=bool,
+        default=False,
+        help="Create custom splits for validating on ED and ES frames.",
+    )
     args = parser.parse_args()
-    print("Converting...")
-    convert_acdc(args.input_folder, args.dataset_id)
+    args.input_folder = Path(args.input_folder)
+
+    if args.custom_splits:
+        print("Creating custom splits...")
+        create_custom_splits(args.input_folder, args.dataset_id)
+    else:
+        print("Converting...")
+        convert_acdc(args.input_folder, args.dataset_id)
+
     print("Done!")
