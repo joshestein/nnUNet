@@ -1,10 +1,9 @@
 import csv
+import nibabel as nib
 import os
 import random
-from pathlib import Path
-
-import nibabel as nib
 from batchgenerators.utilities.file_and_folder_operations import load_json, save_json
+from pathlib import Path
 
 from nnunetv2.dataset_conversion.Dataset027_ACDC import make_out_dirs
 from nnunetv2.dataset_conversion.generate_dataset_json import generate_dataset_json
@@ -108,8 +107,8 @@ def create_custom_splits(src_data_folder: Path, csv_file: str, dataset_id: int, 
     # Get train and validation patients for both vendors
     patients_a = [patient for patient, patient_data in patient_info.items() if patient_data["vendor"] == "A"]
     patients_b = [patient for patient, patient_data in patient_info.items() if patient_data["vendor"] == "B"]
-    train_a, val_a = get_vendor_split(patients_a, num_val_patients)
-    train_b, val_b = get_vendor_split(patients_b, num_val_patients)
+    train_a, val_a = create_split(patients_a, num_val_patients)
+    train_b, val_b = create_split(patients_b, num_val_patients)
 
     # Build filenames from corresponding patient frames
     train_a = [f"{patient}_frame{patient_info[patient][frame]:02d}" for patient in train_a for frame in ["es", "ed"]]
@@ -129,7 +128,37 @@ def create_custom_splits(src_data_folder: Path, csv_file: str, dataset_id: int, 
     save_json(splits, existing_splits)
 
 
-def get_vendor_split(patients: list[str], num_val_patients: int):
+def create_ed_es_validation_splits(src_data_folder: Path, csv_file: str, dataset_id: int, num_val_patients: int = 60):
+    existing_splits = os.path.join(nnUNet_preprocessed, f"Dataset{dataset_id}_MNMs", "splits_final.json")
+    splits = load_json(existing_splits)
+
+    patients_train = [f.name for f in (src_data_folder / "Training" / "Labeled").iterdir() if f.is_dir()]
+    # Filter out any patients not in the training set
+    patient_info = {
+        patient: data
+        for patient, data in read_csv(str(src_data_folder / csv_file)).items()
+        if patient in patients_train
+    }
+
+    splits.append(create_ed_es_split("ed", patient_info, num_val_patients))
+    splits.append(create_ed_es_split("es", patient_info, num_val_patients))
+    save_json(splits, existing_splits)
+
+
+def create_ed_es_split(phase_choice: str, patient_info: dict, num_val_patients: int):
+    train, val = create_split(list(patient_info.keys()), num_val_patients)
+    train_frames = [f"{patient}_frame{patient_info[patient][frame]:02d}" for patient in train for frame in ["es", "ed"]]
+    val_frames = []
+    for patient in val:
+        ed_frame = f"{patient}_frame{patient_info[patient]['ed']:02d}"
+        es_frame = f"{patient}_frame{patient_info[patient]['es']:02d}"
+        val_frames.append(ed_frame if phase_choice == "ed" else es_frame)
+        train_frames.append(es_frame if phase_choice == "ed" else ed_frame)
+
+    return {"train": train_frames, "val": val_frames}
+
+
+def create_split(patients: list[str], num_val_patients: int):
     random.shuffle(patients)
     total_patients = len(patients)
     num_training_patients = total_patients - num_val_patients
@@ -184,6 +213,9 @@ if __name__ == "__main__":
         "validation sets of patients from A, B or A and B combined. See section 2.4 and table 3 from "
         "https://arxiv.org/abs/2011.07592 for more info.",
     )
+    parser.add_argument(
+        "--ed_es_split", type=bool, default=False, help="Whether to create ED/ES splits for validation."
+    )
 
     args = parser.parse_args()
     args.input_folder = Path(args.input_folder)
@@ -191,6 +223,9 @@ if __name__ == "__main__":
     if args.custom_splits:
         print("Appending custom splits...")
         create_custom_splits(args.input_folder, args.csv_file_name, args.dataset_id)
+    elif args.ed_es_split:
+        print("Creating ED/ES splits...")
+        create_ed_es_validation_splits(args.input_folder, args.csv_file_name, args.dataset_id)
     else:
         print("Converting...")
         convert_mnms(args.input_folder, args.csv_file_name, args.dataset_id)
