@@ -89,7 +89,7 @@ class nnUNetTrainer(object):
         fold: int,
         dataset_json: dict,
         unpack_dataset: bool = True,
-        percentage_data: Optional[float] = None,
+        num_training_cases: Optional[int] = None,
         device: torch.device = torch.device("cuda"),
         slice_remover: SliceRemover = None,
     ):
@@ -108,7 +108,7 @@ class nnUNetTrainer(object):
 
         # OK OK I am guilty. But I tried. http://tiny.cc/gzgwuz
 
-        self.percentage_data = percentage_data
+        self.num_training_cases = num_training_cases
         self.is_ddp = dist.is_available() and dist.is_initialized()
         self.local_rank = 0 if not self.is_ddp else dist.get_rank()
 
@@ -664,10 +664,10 @@ class nnUNetTrainer(object):
         # create dataset split
         tr_keys, val_keys = self.do_split()
 
-        if self.percentage_data is not None:
+        if self.num_training_cases is not None:
             # We sample the first n keys.
             # We could alternatively randomly sample, but this would not produce deterministic runs.
-            tr_keys = tr_keys[: int(len(tr_keys) * self.percentage_data)]
+            tr_keys = tr_keys[: self.num_training_cases]
             self.print_to_log_file(f"Limited data. Using {len(tr_keys)} training cases")
 
         # load the datasets for training and validation. Note that we always draw random samples so we really don't

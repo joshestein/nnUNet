@@ -37,7 +37,7 @@ def get_trainer_from_args(
     trainer_name: str = "nnUNetTrainer",
     plans_identifier: str = "nnUNetPlans",
     use_compressed: bool = False,
-    percentage_data: Optional[float] = None,
+    num_training_cases: Optional[int] = None,
     device: torch.device = torch.device("cuda"),
     slice_remover: SliceRemover = None,
 ):
@@ -82,7 +82,7 @@ def get_trainer_from_args(
         dataset_json=dataset_json,
         unpack_dataset=not use_compressed,
         device=device,
-        percentage_data=percentage_data,
+        num_training_cases=num_training_cases,
         slice_remover=slice_remover,
     )
     return nnunet_trainer
@@ -184,7 +184,7 @@ def run_training(
     continue_training: bool = False,
     only_run_validation: bool = False,
     disable_checkpointing: bool = False,
-    percentage_data: Optional[float] = None,
+    num_training_cases: Optional[int] = None,
     device: torch.device = torch.device("cuda"),
     slice_remover: SliceRemover = None,
 ):
@@ -237,7 +237,7 @@ def run_training(
             trainer_class_name,
             plans_identifier,
             use_compressed_data,
-            percentage_data,
+            num_training_cases,
             device=device,
             slice_remover=slice_remover,
         )
@@ -335,10 +335,10 @@ def run_training_entry():
         "Use CUDA_VISIBLE_DEVICES=X nnUNetv2_train [...] instead!",
     )
     parser.add_argument(
-        "--percentage_data",
-        type=float,
-        default=1.0,
-        help="The percentage of data to use for training.",
+        "--num_training_cases",
+        type=int,
+        default=50,
+        help="The number of training cases to use for training.",
     )
     args = parser.parse_args()
 
@@ -407,7 +407,7 @@ def run_training_entry():
             args.c,
             args.val,
             args.disable_checkpointing,
-            args.percentage_data,
+            args.num_training_cases,
             device=device,
             slice_remover=slice_remover,
         )
