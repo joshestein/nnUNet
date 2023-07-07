@@ -6,7 +6,6 @@ import torch
 def compute_surface_metrics(
     prediction: torch.Tensor,
     target: torch.Tensor,
-    device: torch.device,
     spacing_mm: list[float],
     hausdorff_percentile=95,
 ):
@@ -18,7 +17,7 @@ def compute_surface_metrics(
         target_onehot = target
     else:
         target = target.long()
-        target_onehot = torch.zeros(prediction.shape, device=device)
+        target_onehot = torch.zeros(prediction.shape, device="cpu")
         target_onehot.scatter_(1, target, 1)
 
     prediction = prediction.detach().cpu().numpy()
