@@ -100,7 +100,7 @@ def compute_metrics(
     # load images
     seg_ref, seg_ref_dict = image_reader_writer.read_seg(reference_file)
     seg_pred, seg_pred_dict = image_reader_writer.read_seg(prediction_file)
-    # spacing = seg_ref_dict['spacing']
+    spacing_mm = seg_ref_dict["spacing"]
 
     ignore_mask = seg_ref == ignore_label if ignore_label is not None else None
 
@@ -125,6 +125,10 @@ def compute_metrics(
         results["metrics"][r]["TN"] = tn
         results["metrics"][r]["n_pred"] = fp + tp
         results["metrics"][r]["n_ref"] = fn + tp
+
+        surface_metrics = compute_np_surface_metrics(mask_pred[0], mask_ref[0], spacing_mm)
+        results["metrics"][r]["hausdorff"] = surface_metrics["hausdorff"]
+        results["metrics"][r]["surface_distance"] = surface_metrics["surface_distance"]
     return results
 
 
