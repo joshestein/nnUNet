@@ -1162,7 +1162,7 @@ class nnUNetTrainer(object):
         # overhead to pass around 3 values for 3 regions. So we just compute the dice for each region here.
         dice_per_region = get_dice_per_region(tp=tp, fp=fp, fn=fn, slice_regions=batch.get("regions", []))
         surface_metrics = compute_surface_metrics(
-            predicted_segmentation_onehot, target, self.configuration_manager.spacing
+            predicted_segmentation_onehot, target, self.device, self.configuration_manager.spacing
         )
 
         tp_hard = sum_tensor(tp, axes, keepdim=False).detach().cpu().numpy()
