@@ -37,6 +37,7 @@ def compute_surface_metrics(
             prediction[batch_index, class_index] == 1,
             target_onehot[batch_index, class_index] == 1,
             spacing_mm=spacing_mm,
+            hausdorff_percentile=hausdorff_percentile,
         )
         hd[batch_index, class_index] = hausdorff
         sd[batch_index, class_index] = local_surface_distance
