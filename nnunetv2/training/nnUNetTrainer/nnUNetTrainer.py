@@ -667,6 +667,12 @@ class nnUNetTrainer(object):
         if self.num_training_cases is not None:
             # We sample the first n keys.
             # We could alternatively randomly sample, but this would not produce deterministic runs.
+            if self.num_training_cases > len(tr_keys):
+                raise RuntimeError(
+                    f"Cannot sample {self.num_training_cases} training cases from the split. "
+                    f"Split contains only {len(tr_keys)} cases."
+                )
+
             tr_keys = tr_keys[: self.num_training_cases]
             self.print_to_log_file(f"Limited data. Using {len(tr_keys)} training cases")
 
