@@ -31,28 +31,35 @@ def compute_surface_metrics(
     hd = np.empty((prediction.shape[0], prediction.shape[1]))
 
     for batch_index, class_index in np.ndindex(prediction.shape[0], prediction.shape[1]):
-        surface_distances = surface_distance.compute_surface_distances(
+        hausdorff, local_surface_distance = compute_np_surface_metrics(
             # Convert to boolean arrays
             prediction[batch_index, class_index] == 1,
             target_onehot[batch_index, class_index] == 1,
             spacing_mm=spacing_mm,
         )
-
-        hd[batch_index, class_index] = surface_distance.compute_robust_hausdorff(
-            surface_distances, hausdorff_percentile
-        )
-        dist_gt_to_prediction, dist_prediction_to_gt = surface_distance.compute_average_surface_distance(
-            surface_distances
-        )
-        sd[batch_index, class_index] = max(dist_gt_to_prediction, dist_prediction_to_gt)
-
-    # Replace infs with NaNs
-    # This allows us to average using np.nanmean
-    sd[sd == np.inf] = np.nan
-    hd[hd == np.inf] = np.nan
+        hd[batch_index, class_index] = hausdorff
+        sd[batch_index, class_index] = local_surface_distance
 
     # Average over batch
     return {
         "avg_surface_distance": np.nanmean(sd, axis=0),
         "hausdorff": np.nanmean(hd, axis=0),
+    }
+
+
+def compute_np_surface_metrics(pred: np.array, target: np.array, spacing_mm: list[float], hausdorff_percentile=95):
+    surface_distances = surface_distance.compute_surface_distances(pred, target, spacing_mm=spacing_mm)
+
+    hd = surface_distance.compute_robust_hausdorff(surface_distances, hausdorff_percentile)
+    dist_gt_to_prediction, dist_prediction_to_gt = surface_distance.compute_average_surface_distance(surface_distances)
+    sd = max(dist_gt_to_prediction, dist_prediction_to_gt)
+
+    # Replace infs with NaNs
+    # This allows us to average using np.nanmean
+    sd = np.nan if sd == np.inf else sd
+    hd = np.nan if hd == np.inf else hd
+
+    return {
+        "surface_distance": sd,
+        "hausdorff": hd,
     }
