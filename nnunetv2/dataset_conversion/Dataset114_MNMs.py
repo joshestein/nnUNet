@@ -35,14 +35,14 @@ def read_csv(csv_file: str):
 # Conversion to nnUNet format
 # ------------------------------------------------------------------------------
 def convert_mnms(src_data_folder: Path, csv_file_name: str, dataset_id: int):
-    out_dir, out_train_dir, out_labels_dir, out_test_dir = make_out_dirs(dataset_id, task_name="MNMs")
+    out_dir = make_out_dirs(dataset_id, task_name="MNMs")
     patients_train = [f for f in (src_data_folder / "Training" / "Labeled").iterdir() if f.is_dir()]
     patients_test = [f for f in (src_data_folder / "Testing").iterdir() if f.is_dir()]
 
     patient_info = read_csv(str(src_data_folder / csv_file_name))
 
-    save_cardiac_phases(patients_train, patient_info, out_train_dir, out_labels_dir)
-    save_cardiac_phases(patients_test, patient_info, out_test_dir)
+    save_cardiac_phases(patients_train, patient_info, out_dir / "imagesTr", out_dir / "labelsTr")
+    save_cardiac_phases(patients_test, patient_info, out_dir / "imagesTs", out_dir / "labelsTs")
 
     # There are non-orthonormal direction cosines in the test and validation data.
     # Not sure if the data should be fixed, or we should skip the problematic data.

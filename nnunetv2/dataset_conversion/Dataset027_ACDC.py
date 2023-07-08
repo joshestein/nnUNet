@@ -44,6 +44,8 @@ def copy_files(src_data_folder: Path, out_dir: Path):
         for file in patient_dir.iterdir():
             if file.suffix == ".gz" and "_gt" not in file.name and "_4d" not in file.name:
                 shutil.copy(file, out_dir / "imagesTs" / f"{file.stem.split('.')[0]}_0000.nii.gz")
+            elif file.suffix == ".gz" and "_gt" in file.name:
+                shutil.copy(file, out_dir / "labelsTs" / file.name.replace("_gt", ""))
 
     return num_training_cases
 
