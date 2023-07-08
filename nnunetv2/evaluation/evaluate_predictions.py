@@ -1,3 +1,4 @@
+import multiprocessing
 import numpy as np
 import os
 from batchgenerators.utilities.file_and_folder_operations import isfile, join, load_json, save_json, subfiles
