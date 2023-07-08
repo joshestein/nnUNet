@@ -32,15 +32,15 @@ def compute_surface_metrics(
     hd = np.empty((prediction.shape[0], prediction.shape[1]))
 
     for batch_index, class_index in np.ndindex(prediction.shape[0], prediction.shape[1]):
-        hausdorff, local_surface_distance = compute_np_surface_metrics(
+        metrics = compute_np_surface_metrics(
             # Convert to boolean arrays
             prediction[batch_index, class_index] == 1,
             target_onehot[batch_index, class_index] == 1,
             spacing_mm=spacing_mm,
             hausdorff_percentile=hausdorff_percentile,
         )
-        hd[batch_index, class_index] = hausdorff
-        sd[batch_index, class_index] = local_surface_distance
+        hd[batch_index, class_index] = metrics["hausdorff"]
+        sd[batch_index, class_index] = metrics["surface_distance"]
 
     # Average over batch
     return {
