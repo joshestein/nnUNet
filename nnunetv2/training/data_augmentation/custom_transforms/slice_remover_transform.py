@@ -43,13 +43,13 @@ class SliceRemoverTransform(AbstractTransform):
         assert len(data.shape) == 5, "Data must be of shape batch x channels x slices x width x height."
 
         slices = data.shape[2]
-        slices_per_region = slices / 3  # We divide the entire volume into 3 regions: base, mid, apex
+        slices_per_region = int(math.ceil(slices / 3))  # We divide the entire volume into 3 regions: base, mid, apex
         num_sample_slices = int(slices * self.percentage_slices)
 
         region_slices = {
-            "base": range(0, int(math.ceil(slices_per_region))),
-            "mid": range(int(math.ceil(slices_per_region)), int(math.ceil(2 * slices_per_region))),
-            "apex": range(int(math.ceil(2 * slices_per_region)), slices),
+            "base": range(0, slices_per_region),
+            "mid": range(slices_per_region, 2 * slices_per_region),
+            "apex": range(2 * slices_per_region, slices),
         }
 
         if self.randomise_slices:
