@@ -21,7 +21,7 @@ class SliceRemoverTransform(AbstractTransform):
 
     def __call__(self, **data_dict):
         if self.percentage_slices == 1.0 and len(self.sample_regions) == len(SAMPLE_REGIONS):
-            return
+            return data_dict
 
         data = data_dict[self.keys[0]]
         mask = self._get_mask(data)
