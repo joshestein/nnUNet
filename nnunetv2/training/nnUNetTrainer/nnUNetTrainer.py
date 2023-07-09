@@ -53,6 +53,7 @@ from nnunetv2.training.data_augmentation.custom_transforms.masking import MaskTr
 from nnunetv2.training.data_augmentation.custom_transforms.region_based_training import (
     ConvertSegmentationToRegionsTransform,
 )
+from nnunetv2.training.data_augmentation.custom_transforms.slice_remover_transform import SliceRemoverTransform
 from nnunetv2.training.data_augmentation.custom_transforms.transforms_for_dummy_2d import (
     Convert2DTo3DTransform,
     Convert3DTo2DTransform,
@@ -724,6 +725,9 @@ class nnUNetTrainer(object):
             foreground_labels=self.label_manager.foreground_labels,
             regions=self.label_manager.foreground_regions if self.label_manager.has_regions else None,
             ignore_label=self.label_manager.ignore_label,
+            percentage_slices=self.slice_remover.percentage_slices,
+            slice_sample_regions=self.slice_remover.sample_regions,
+            randomise_slices=self.slice_remover.randomise_slices,
         )
 
         # validation pipeline
@@ -827,6 +831,8 @@ class nnUNetTrainer(object):
         regions: List[Union[List[int], Tuple[int, ...], int]] = None,
         ignore_label: int = None,
         percentage_slices: float = 0.0,
+        slice_sample_regions: list[str] = None,
+        randomise_slices: bool = False,
     ) -> AbstractTransform:
         tr_transforms = []
         if do_dummy_2d_data_aug:
@@ -921,6 +927,18 @@ class nnUNetTrainer(object):
                     p_per_sample=0.2,
                     fill_with_other_class_p=0,
                     dont_do_if_covers_more_than_x_percent=0.15,
+                )
+            )
+
+        if len(patch_size) == 3:
+            # We only do slice removal for 3D data.
+            # 2D slices are randomly sampled from 3D volumes. Slice removal would just mean sampling more zeroed-out
+            # slices.
+            tr_transforms.append(
+                SliceRemoverTransform(
+                    percentage_slices=percentage_slices,
+                    sample_regions=slice_sample_regions,
+                    randomise_slices=randomise_slices,
                 )
             )
 
