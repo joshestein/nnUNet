@@ -1,10 +1,44 @@
+import math
 import numpy as np
+from typing import List, Tuple, Union
 
+from nnunetv2.training.data_augmentation.custom_transforms.slice_remover_transform import SAMPLE_REGIONS
 from nnunetv2.training.dataloading.base_data_loader import nnUNetDataLoaderBase
 from nnunetv2.training.dataloading.nnunet_dataset import nnUNetDataset
+from nnunetv2.utilities.label_handling.label_handling import LabelManager
 
 
 class nnUNetDataLoader2D(nnUNetDataLoaderBase):
+    def __init__(
+        self,
+        data: nnUNetDataset,
+        batch_size: int,
+        patch_size: Union[List[int], Tuple[int, ...], np.ndarray],
+        final_patch_size: Union[List[int], Tuple[int, ...], np.ndarray],
+        label_manager: LabelManager,
+        oversample_foreground_percent: float = 0.0,
+        sampling_probabilities: Union[List[int], Tuple[int, ...], np.ndarray] = None,
+        pad_sides: Union[List[int], Tuple[int, ...], np.ndarray] = None,
+        probabilistic_oversampling: bool = False,
+        sample_regions: list[str] = None,
+    ):
+        super().__init__(
+            data,
+            batch_size,
+            patch_size,
+            final_patch_size,
+            label_manager,
+            oversample_foreground_percent,
+            sampling_probabilities,
+            pad_sides,
+            probabilistic_oversampling,
+        )
+        if sample_regions is None:
+            # By default, sample from all cardiac regions (i.e. all slices)
+            sample_regions = SAMPLE_REGIONS
+
+        self.sample_regions = sample_regions
+
     def generate_train_batch(self):
         selected_keys = self.get_indices()
         # preallocate memory for data and seg
@@ -12,6 +46,19 @@ class nnUNetDataLoader2D(nnUNetDataLoaderBase):
         seg_all = np.zeros(self.seg_shape, dtype=np.int16)
         case_properties = []
         regions = []
+
+        first_case, _, _ = self._data.load_case(selected_keys[0])
+        slices = first_case.shape[1]
+        slices_per_region = int(math.ceil(slices / 3))  # We divide the entire volume into 3 regions: base, mid, apex
+        if len(self.sample_regions) == 3:
+            indices_to_sample = slices
+        else:
+            region_slices = {
+                "base": range(0, slices_per_region),
+                "mid": range(slices_per_region, 2 * slices_per_region),
+                "apex": range(2 * slices_per_region, slices),
+            }
+            indices_to_sample = [index for region in self.sample_regions for index in region_slices[region]]
 
         for j, current_key in enumerate(selected_keys):
             # oversampling foreground will improve stability of model training, especially if many patches are empty
@@ -50,10 +97,8 @@ class nnUNetDataLoader2D(nnUNetDataLoaderBase):
             if selected_class_or_region is not None:
                 selected_slice = np.random.choice(properties["class_locations"][selected_class_or_region][:, 1])
             else:
-                non_zero_slices = np.unique(np.nonzero(data)[1])
-                selected_slice = np.random.choice(non_zero_slices)
+                selected_slice = np.random.choice(indices_to_sample)
 
-            slices_per_region = data.shape[1] / 3
             if selected_slice < slices_per_region:
                 regions.append("base")
             elif selected_slice < 2 * slices_per_region:

@@ -787,6 +787,7 @@ class nnUNetTrainer(object):
                 oversample_foreground_percent=self.oversample_foreground_percent,
                 sampling_probabilities=None,
                 pad_sides=None,
+                sample_regions=self.slice_remover.sample_regions,
             )
             dl_val = nnUNetDataLoader2D(
                 dataset_val,
