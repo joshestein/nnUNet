@@ -684,7 +684,6 @@ class nnUNetTrainer(object):
             tr_keys,
             folder_with_segs_from_previous_stage=self.folder_with_segs_from_previous_stage,
             num_images_properties_loading_threshold=0,
-            slice_remover=self.slice_remover,
         )
         dataset_val = nnUNetDataset(
             self.preprocessed_dataset_folder,
