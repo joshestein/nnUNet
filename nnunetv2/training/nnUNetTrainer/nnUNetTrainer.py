@@ -155,6 +155,13 @@ class nnUNetTrainer(object):
                 nnUNet_results,
                 self.plans_manager.dataset_name,
                 self.__class__.__name__ + "__" + self.plans_manager.plans_name + "__" + configuration,
+                f"num_training_cases_{num_training_cases}",
+                f"percentage_slices_{self.slice_remover.percentage_slices}",
+                (
+                    f"slice_regions_{self.slice_remover.sample_regions}"
+                    if len(self.slice_remover.sample_regions) < 3
+                    else ""
+                ),
             )
             if nnUNet_results is not None
             else None
