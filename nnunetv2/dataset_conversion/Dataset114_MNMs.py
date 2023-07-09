@@ -2,6 +2,7 @@ import csv
 import nibabel as nib
 import os
 import random
+import SimpleITK
 from batchgenerators.utilities.file_and_folder_operations import load_json, save_json
 from pathlib import Path
 
@@ -65,6 +66,12 @@ def save_cardiac_phases(
 ):
     for patient in patients:
         print(f"Processing patient: {patient.name}")
+
+        try:
+            SimpleITK.ReadImage(str(patient / f"{patient.name}_sa.nii.gz"))
+        except RuntimeError:
+            print(f"Skipping patient: {patient.name} due to non-orthonormal direction cosines.")
+            continue
 
         image = nib.load(patient / f"{patient.name}_sa.nii.gz")
         ed_frame = patient_info[patient.name]["ed"]
