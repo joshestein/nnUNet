@@ -48,17 +48,6 @@ class nnUNetDataLoader2D(nnUNetDataLoaderBase):
         regions = []
 
         first_case, _, _ = self._data.load_case(selected_keys[0])
-        slices = first_case.shape[1]
-        slices_per_region = int(math.ceil(slices / 3))  # We divide the entire volume into 3 regions: base, mid, apex
-        if len(self.sample_regions) == 3:
-            indices_to_sample = slices
-        else:
-            region_slices = {
-                "base": range(0, slices_per_region),
-                "mid": range(slices_per_region, 2 * slices_per_region),
-                "apex": range(2 * slices_per_region, slices),
-            }
-            indices_to_sample = [index for region in self.sample_regions for index in region_slices[region]]
 
         for j, current_key in enumerate(selected_keys):
             # oversampling foreground will improve stability of model training, especially if many patches are empty
@@ -94,9 +83,21 @@ class nnUNetDataLoader2D(nnUNetDataLoaderBase):
                     if len(eligible_classes_or_regions) > 0
                     else None
                 )
+
+            slices = data.shape[1]
+            slices_per_region = int(
+                math.ceil(slices / 3)
+            )  # We divide the entire volume into 3 regions: base, mid, apex
+
             if selected_class_or_region is not None:
                 selected_slice = np.random.choice(properties["class_locations"][selected_class_or_region][:, 1])
             else:
+                region_slices = {
+                    "base": range(0, slices_per_region),
+                    "mid": range(slices_per_region, 2 * slices_per_region),
+                    "apex": range(2 * slices_per_region, slices),
+                }
+                indices_to_sample = [index for region in self.sample_regions for index in region_slices[region]]
                 selected_slice = np.random.choice(indices_to_sample)
 
             if selected_slice < slices_per_region:
