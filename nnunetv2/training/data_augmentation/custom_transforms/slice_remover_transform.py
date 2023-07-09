@@ -1,11 +1,9 @@
 import math
 import numpy as np
-
 import wandb
-
 from batchgenerators.transforms.abstract_transforms import AbstractTransform
 
-SAMPLE_REGIONS = ("apex", "mid", "base")
+from nnunetv2.training.dataloading.slice_remover import SAMPLE_REGIONS
 
 
 class SliceRemoverTransform(AbstractTransform):
