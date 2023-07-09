@@ -337,7 +337,6 @@ def run_training_entry():
     parser.add_argument(
         "--num_training_cases",
         type=int,
-        default=50,
         help="The number of training cases to use for training.",
     )
     args = parser.parse_args()
