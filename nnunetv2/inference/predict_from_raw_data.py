@@ -1109,6 +1109,7 @@ def predict_entry_point():
         "(GPU), 'cpu' (CPU) and 'mps' (Apple M1/M2). Do NOT use this to set which GPU ID! "
         "Use CUDA_VISIBLE_DEVICES=X nnUNetv2_predict [...] instead!",
     )
+    parser.add_argument("-m", type=str, required=False, help="Additional sub-folder for model location.")
 
     print(
         "\n#######################################################################\nPlease cite the following paper "
@@ -1122,6 +1123,8 @@ def predict_entry_point():
     args.f = [i if i == "all" else int(i) for i in args.f]
 
     model_folder = get_output_folder(args.d, args.tr, args.p, args.c)
+    if args.m:
+        model_folder = join(model_folder, args.m)
 
     args.o = str(Path(nnUNet_results) / maybe_convert_to_dataset_name(args.d) / args.o)
     args.i = str(Path(nnUNet_raw) / maybe_convert_to_dataset_name(args.d) / args.i)
