@@ -12,7 +12,6 @@ from nnunetv2.imageio.reader_writer_registry import (
     determine_reader_writer_from_dataset_json,
     determine_reader_writer_from_file_ending,
 )
-from nnunetv2.imageio.simpleitk_reader_writer import SimpleITKIO
 # the Evaluator class of the previous nnU-Net was great and all but man was it overengineered. Keep it simple
 from nnunetv2.utilities.json_export import recursive_fix_for_json_export
 from nnunetv2.utilities.plans_handling.plans_handler import PlansManager
@@ -325,14 +324,14 @@ def evaluate_simple_entry_point():
 
 
 if __name__ == "__main__":
-    folder_ref = "/media/fabian/data/nnUNet_raw/Dataset004_Hippocampus/labelsTr"
-    folder_pred = "/home/fabian/results/nnUNet_remake/Dataset004_Hippocampus/nnUNetModule__nnUNetPlans__3d_fullres/fold_0/validation"
-    output_file = "/home/fabian/results/nnUNet_remake/Dataset004_Hippocampus/nnUNetModule__nnUNetPlans__3d_fullres/fold_0/validation/summary.json"
-    image_reader_writer = SimpleITKIO()
-    file_ending = ".nii.gz"
-    regions = labels_to_list_of_regions([1, 2])
-    ignore_label = None
-    num_processes = 12
-    compute_metrics_on_folder(
-        folder_ref, folder_pred, output_file, image_reader_writer, file_ending, regions, ignore_label, num_processes
+    # folder_ref = "/media/fabian/data/nnUNet_raw/Dataset004_Hippocampus/labelsTr"
+    # folder_pred = "/home/fabian/results/nnUNet_remake/Dataset004_Hippocampus/nnUNetModule__nnUNetPlans__3d_fullres/fold_0/validation"
+    # output_file = "/home/fabian/results/nnUNet_remake/Dataset004_Hippocampus/nnUNetModule__nnUNetPlans__3d_fullres/fold_0/validation/summary.json"
+    # image_reader_writer = SimpleITKIO()
+    # file_ending = ".nii.gz"
+    # regions = labels_to_list_of_regions([1, 2])
+    # ignore_label = None
+    # num_processes = 12
+    evaluate_folder_entry_point(
+        # folder_ref, folder_pred, output_file, image_reader_writer, file_ending, regions, ignore_label, num_processes
     )
