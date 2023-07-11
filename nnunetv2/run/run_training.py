@@ -369,24 +369,24 @@ def run_training_entry():
     else:
         dataset = "unknown"
 
-    for num_training_cases in [8, 12, 16, 24, 32, 48, 64, 80, 96, 144, 160, 192, 240]:
-        slice_remover = SliceRemover()
+    for percentage_slices in [1.0, 0.8, 0.66, 0.5, 0.33, 0.2, 0.1, 0.05]:
+        slice_remover = SliceRemover(percentage_slices=percentage_slices)
         wandb_config = {
             "architecture": "nnUNet",
             "dataset": dataset,
-            "num_training_cases": num_training_cases,
-            # "percentage_slices": percentage_slices,
+            # "num_training_cases": num_training_cases,
+            "percentage_slices": percentage_slices,
             # "sample_regions": sample_regions,
             "dimensions": args.configuration,
         }
         wandb.init(
-            project=f"{dataset}-nnUNet-{args.configuration}-data_reduction",
-            name=f"num_training_cases-{num_training_cases}",
+            project=f"{dataset}-nnUNet-{args.configuration}-slice_reduction",
+            name=f"percentage_slices_{percentage_slices}",
             config=wandb_config,
-            tags=["limited_data"],
+            tags=["limited_slices"],
             reinit=True,
         )
-        args.num_training_cases = num_training_cases
+        # args.num_training_cases = num_training_cases
         run_training(
             args.dataset_name_or_id,
             args.configuration,
