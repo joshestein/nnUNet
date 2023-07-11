@@ -1,10 +1,19 @@
+import os
+
 import subprocess
-from batchgenerators.utilities.file_and_folder_operations import join
 
 for dataset_id in [27]:
     for config in ["2d"]:
-        for num_cases in [8, 12, 16, 24, 32, 48, 64, 80, 96, 144, 160, 192, 240]:
-            output_folder = join(f"imagesTs_pred_{config}", f"num_training_cases_{num_cases:03d}")
+        for slice_regions in [
+            ("apex", "mid", "base"),
+            ("apex", "mid"),
+            ("apex", "base"),
+            ("mid", "base"),
+            ["apex"],
+            ["mid"],
+            ["base"],
+        ]:
+            output_folder = os.path.join(f"imagesTs_pred_{config}", f"slice_regions_{'_'.join(slice_regions)}")
             args = [
                 "-d",
                 str(dataset_id),
@@ -13,7 +22,7 @@ for dataset_id in [27]:
                 "-c",
                 config,
                 "-m",
-                f"num_training_patients_{num_cases}",
+                f"num_training_cases_None/percentage_slices_1.0_regions_{'_'.join(slice_regions)}",
                 "-i",
                 "imagesTs",
                 "-o",
@@ -26,7 +35,7 @@ for dataset_id in [27]:
                 out, err = p.communicate()
                 print(out)
             except:
-                print(f"Failed for num_training_cases_{num_cases}. Does the run/fold exist?")
+                print(f"Failed for regions {slice_regions}. Does the run/fold exist?")
                 continue
 
 # TODO:
