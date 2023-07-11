@@ -6,8 +6,7 @@ from nnunetv2.paths import nnUNet_raw, nnUNet_results
 from nnunetv2.utilities.dataset_name_id_conversion import maybe_convert_to_dataset_name
 
 
-def build_args(pred_folder: str, dataset_name: str):
-    gt_folder = os.path.join(nnUNet_raw, dataset_name, "labelsTs")
+def build_args(gt_folder, pred_folder: str):
     dataset_file = os.path.join(pred_folder, "dataset.json")
     plans_file = os.path.join(pred_folder, "plans.json")
     return [gt_folder, pred_folder, "-pfile", plans_file, "-djfile", dataset_file]
@@ -45,6 +44,7 @@ def percentage_slices_generator(output_folder: str):
 def main():
     for dataset_id in [27, 114]:
         dataset_name = maybe_convert_to_dataset_name(dataset_id)
+        gt_folder = os.path.join(nnUNet_raw, dataset_name, "labelsTs")
         for config in ["2d", "3d_fullres"]:
             base_output_folder = os.path.join(nnUNet_results, dataset_name, f"imagesTs_pred_{config}")
 
@@ -52,11 +52,11 @@ def main():
             slice_generator = slice_region_generator(base_output_folder)
             slice_percentage_generator = percentage_slices_generator(base_output_folder)
 
-            for gen_args in chain(num_cases_generator, slice_generator, slice_percentage_generator):
+            for pred_folder in chain(num_cases_generator, slice_generator, slice_percentage_generator):
                 try:
-                    run_subprocess("evaluate_predictions.py", build_args(gen_args, dataset_name))
+                    run_subprocess("evaluate_predictions.py", build_args(gt_folder, pred_folder))
                 except FileNotFoundError:
-                    print(f"Failed for {gen_args}. Does the run/fold exist?")
+                    print(f"Failed for {pred_folder}. Does the run/fold exist?")
                     continue
 
 
