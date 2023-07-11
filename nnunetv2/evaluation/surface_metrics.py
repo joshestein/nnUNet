@@ -55,14 +55,16 @@ def compute_np_surface_metrics(pred: np.array, target: np.array, spacing_mm: lis
     hd = surface_distance.compute_robust_hausdorff(surface_distances, hausdorff_percentile)
     dist_gt_to_prediction, dist_prediction_to_gt = surface_distance.compute_average_surface_distance(surface_distances)
     sd = max(dist_gt_to_prediction, dist_prediction_to_gt)
+    absolute_difference = surface_distances["mean_absolute_difference"]
 
     # Replace infs with NaNs
     # This allows us to average using np.nanmean
     sd = np.nan if sd == np.inf else sd
     hd = np.nan if hd == np.inf else hd
+    absolute_difference = np.nan if absolute_difference == np.inf else absolute_difference
 
     return {
         "surface_distance": sd,
         "hausdorff": hd,
-        "mean_absolute_difference": surface_distances["mean_absolute_difference"],
+        "mean_absolute_difference": absolute_difference,
     }
