@@ -64,4 +64,5 @@ def compute_np_surface_metrics(pred: np.array, target: np.array, spacing_mm: lis
     return {
         "surface_distance": sd,
         "hausdorff": hd,
+        "mean_absolute_difference": surface_distances["mean_absolute_difference"],
     }
