@@ -127,6 +127,7 @@ def compute_metrics(
         surface_metrics = compute_np_surface_metrics(mask_pred[0], mask_ref[0], spacing_mm)
         results["metrics"][r]["hausdorff"] = surface_metrics["hausdorff"]
         results["metrics"][r]["surface_distance"] = surface_metrics["surface_distance"]
+        results["metrics"][r]["mean_absolute_difference"] = surface_metrics["mean_absolute_difference"]
     return results
 
 
