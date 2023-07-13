@@ -731,7 +731,7 @@ class nnUNetTrainer(object):
             foreground_labels=self.label_manager.foreground_labels,
             regions=self.label_manager.foreground_regions if self.label_manager.has_regions else None,
             ignore_label=self.label_manager.ignore_label,
-            percentage_slices=self.slice_remover.percentage_slices,
+            num_slices=self.slice_remover.num_slices,
             slice_sample_regions=self.slice_remover.sample_regions,
             randomise_slices=self.slice_remover.randomise_slices,
         )
@@ -837,7 +837,7 @@ class nnUNetTrainer(object):
         foreground_labels: Union[Tuple[int, ...], List[int]] = None,
         regions: List[Union[List[int], Tuple[int, ...], int]] = None,
         ignore_label: int = None,
-        percentage_slices: float = 0.0,
+        num_slices: int = None,
         slice_sample_regions: list[str] = None,
         randomise_slices: bool = False,
     ) -> AbstractTransform:
@@ -943,7 +943,7 @@ class nnUNetTrainer(object):
             # slices.
             tr_transforms.append(
                 SliceRemoverTransform(
-                    percentage_slices=percentage_slices,
+                    num_slices=num_slices,
                     sample_regions=slice_sample_regions,
                     randomise_slices=randomise_slices,
                 )

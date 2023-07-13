@@ -5,7 +5,7 @@ SAMPLE_REGIONS = ("apex", "mid", "base")
 
 @dataclass(frozen=True)
 class SliceRemover:
-    percentage_slices: float = 1.0
+    num_slices: int = None  # The number of slices to sample for each volume. If None, all slices are used.
     sample_regions: list[str] | tuple[str, ...] = SAMPLE_REGIONS
     randomise_slices: bool = True
     maintain_shape: bool = True
