@@ -35,6 +35,10 @@ def slice_region_generator(output_folder: str):
     )
 
 
+def integer_slice_region_generator(output_folder: str):
+    return (os.path.join(output_folder, f"num_slices_{num_slices}") for num_slices in [1, 2, 4, 8, 10, 14, 16, 20])
+
+
 def percentage_slices_generator(output_folder: str):
     return (
         os.path.join(output_folder, f"percentage_slices_{percentage_slices}")
@@ -66,10 +70,11 @@ def main():
             num_cases_generator = num_training_cases_generator(base_output_folder)
             slice_generator = slice_region_generator(base_output_folder)
             slice_percentage_generator = percentage_slices_generator(base_output_folder)
+            integer_slices = integer_slice_region_generator(base_output_folder)
             proportion_balance = proportion_generator(dataset_id, base_output_folder)
 
             for pred_folder in chain(
-                num_cases_generator, slice_generator, slice_percentage_generator, proportion_balance
+                num_cases_generator, slice_generator, slice_percentage_generator, integer_slices, proportion_balance
             ):
                 try:
                     run_subprocess("evaluate_predictions.py", build_args(gt_folder, pred_folder))

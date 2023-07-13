@@ -48,6 +48,18 @@ def slice_region_generator(output_folder: str):
     )
 
 
+def integer_slice_region_generator(output_folder: str):
+    return (
+        [
+            "-m",
+            f"num_slices_{num_slices}",
+            "-o",
+            os.path.join(output_folder, f"num_slices_{num_slices}"),
+        ]
+        for num_slices in [1, 2, 4, 8, 10, 14, 16, 20]
+    )
+
+
 def percentage_slices_generator(output_folder: str):
     return (
         [
@@ -88,9 +100,12 @@ def main():
             num_cases_generator = num_training_cases_generator(base_output_folder)
             slice_generator = slice_region_generator(base_output_folder)
             slice_percentage_generator = percentage_slices_generator(base_output_folder)
+            integer_slices = integer_slice_region_generator(base_output_folder)
             proportion_balance = proportion_generator(dataset_id, base_output_folder)
 
-            for gen_args in chain(num_cases_generator, slice_generator, slice_percentage_generator, proportion_balance):
+            for gen_args in chain(
+                num_cases_generator, slice_generator, slice_percentage_generator, integer_slices, proportion_balance
+            ):
                 try:
                     run_subprocess("predict_from_raw_data.py", base_args + gen_args)
                 except FileNotFoundError:
