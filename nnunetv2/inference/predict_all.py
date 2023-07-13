@@ -1,3 +1,5 @@
+import math
+
 import os
 import subprocess
 from itertools import chain
@@ -58,6 +60,24 @@ def percentage_slices_generator(output_folder: str):
     )
 
 
+def proportion_generator(dataset_id: int, output_folder: str):
+    proportion_constant = 1360
+    if dataset_id == 114:
+        num_cases = [240, 192, 160, 144, 120, 100]
+    else:
+        num_cases = [160, 144, 120, 100, 80, 65]
+    slices = [math.ceil(proportion_constant / v) for v in num_cases]
+
+    return (
+        [
+            "-m",
+            f"num_training_cases_{num_training_cases:03d}_num_slices_{num_slices}" "-o",
+            os.path.join(output_folder, f"num_training_cases_{num_training_cases:03d}_num_slices_{num_slices}"),
+        ]
+        for num_training_cases, num_slices in zip(num_cases, slices)
+    )
+
+
 def main():
     for dataset_id in [27, 114]:
         for config in ["2d", "3d_fullres"]:
@@ -67,12 +87,9 @@ def main():
             num_cases_generator = num_training_cases_generator(base_output_folder)
             slice_generator = slice_region_generator(base_output_folder)
             slice_percentage_generator = percentage_slices_generator(base_output_folder)
+            proportion_balance = proportion_generator(dataset_id, base_output_folder)
 
-            for gen_args in chain(
-                num_cases_generator,
-                slice_generator,
-                slice_percentage_generator,
-            ):
+            for gen_args in chain(num_cases_generator, slice_generator, slice_percentage_generator, proportion_balance):
                 try:
                     run_subprocess("predict_from_raw_data.py", base_args + gen_args)
                 except FileNotFoundError:
