@@ -13,7 +13,7 @@ def run_subprocess(script: str, args: list[str]):
 
 
 def build_base_args(dataset_id: int, config: str):
-    return ["-d", str(dataset_id), "-f", str(0), "-c", config, "-i", "imagesTs", "-device", "cpu"]
+    return ["-d", str(dataset_id), "-f", str(0), "-c", config, "-i", "imagesTs"]
 
 
 def num_training_cases_generator(output_folder: str):
