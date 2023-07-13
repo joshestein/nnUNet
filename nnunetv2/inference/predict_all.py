@@ -71,7 +71,8 @@ def proportion_generator(dataset_id: int, output_folder: str):
     return (
         [
             "-m",
-            f"num_training_cases_{num_training_cases:03d}_num_slices_{num_slices}" "-o",
+            f"num_training_cases_{num_training_cases:03d}_num_slices_{num_slices}",
+            "-o",
             os.path.join(output_folder, f"num_training_cases_{num_training_cases:03d}_num_slices_{num_slices}"),
         ]
         for num_training_cases, num_slices in zip(num_cases, slices)
