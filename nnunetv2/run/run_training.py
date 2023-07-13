@@ -1,3 +1,4 @@
+import math
 import os
 import socket
 import torch.cuda
@@ -360,33 +361,42 @@ def run_training_entry():
     else:
         device = torch.device("mps")
 
+    proportion_constant = 1360
+    num_cases = None
+    slices = None
+
     if args.dataset_name_or_id == "114":
         dataset = "MNMs"
+        num_cases = [240, 192, 160, 144, 120, 100]
+        slices = [math.ceil(proportion_constant / v) for v in num_cases]
     elif args.dataset_name_or_id == "27":
         dataset = "ACDC"
+        num_cases = [160, 144, 120, 100, 80, 65]
+        slices = [math.ceil(proportion_constant / v) for v in num_cases]
     elif args.dataset_name_or_id == "115":
         dataset = "EMIDEC"
     else:
         dataset = "unknown"
 
-    for percentage_slices in [1.0, 0.8, 0.66, 0.5, 0.33, 0.2, 0.1, 0.05]:
-        slice_remover = SliceRemover(percentage_slices=percentage_slices)
+    for num_training_cases, num_slices in zip(num_cases, slices):
+        slice_remover = SliceRemover(num_slices=num_slices)
         wandb_config = {
             "architecture": "nnUNet",
             "dataset": dataset,
             # "num_training_cases": num_training_cases,
-            "percentage_slices": percentage_slices,
+            "num_slices": num_slices,
+            "num_training_cases": num_training_cases,
             # "sample_regions": sample_regions,
             "dimensions": args.configuration,
         }
         wandb.init(
             project=f"{dataset}-nnUNet-{args.configuration}-slice_reduction",
-            name=f"percentage_slices_{percentage_slices}",
+            name=f"num_training_cases_{num_training_cases}_num_slices_{num_slices}",
             config=wandb_config,
-            tags=["limited_slices"],
+            tags=["limited_data", "limited_slices", "integer_slices", "proportions"],
             reinit=True,
         )
-        # args.num_training_cases = num_training_cases
+        args.num_training_cases = num_training_cases
         run_training(
             args.dataset_name_or_id,
             args.configuration,
