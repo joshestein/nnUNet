@@ -361,17 +361,23 @@ def run_training_entry():
     else:
         device = torch.device("mps")
 
-    proportion_constant = 1360
+    # Pick a percentage slices, e.g. 20%
+    # ACDC = 20 slices -> 0.2 * 20 = 4
+    # MNMs = 14 slices -> 0.2 * 14 = 2.8 -> 3
+    # 4 * 160 volumes = 640
+    # 3 * 240 volumes = 720
+    # Average = (640 + 720) / 2 = 680
+    proportion_constant = 680
     num_cases = None
     slices = None
 
     if args.dataset_name_or_id == "114":
         dataset = "MNMs"
-        num_cases = [240, 192, 160, 144, 120, 100]
+        num_cases = [240, 192, 160, 144, 120, 100, 80, 65, 50]
         slices = [math.ceil(proportion_constant / v) for v in num_cases]
     elif args.dataset_name_or_id == "27":
         dataset = "ACDC"
-        num_cases = [160, 144, 120, 100, 80, 65]
+        num_cases = [160, 144, 120, 100, 80, 65, 50, 40, 35]
         slices = [math.ceil(proportion_constant / v) for v in num_cases]
     elif args.dataset_name_or_id == "115":
         dataset = "EMIDEC"
