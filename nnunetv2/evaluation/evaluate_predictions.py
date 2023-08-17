@@ -188,8 +188,8 @@ def compute_metrics_on_folder(
                 continue
             values.append(means[k][m])
         foreground_mean[m] = np.mean(values)
-        if m == "Dice":
-            foreground_mean[m + "_std"] = np.std(values)
+        if m in ["Dice", "hausdorff", "mean_absolute_difference"]:
+            foreground_mean[m + "_std"] = np.nanstd(values)
 
     [recursive_fix_for_json_export(i) for i in results]
     recursive_fix_for_json_export(means)
