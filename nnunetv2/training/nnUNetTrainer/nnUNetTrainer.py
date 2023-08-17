@@ -1166,9 +1166,12 @@ class nnUNetTrainer(object):
         else:
             # no need for softmax
             output_seg = output.argmax(1)[:, None]
+            self.save_wandb_image(inputs=data, outputs=output_seg, labels=target, image_name="validation")
             predicted_segmentation_onehot = torch.zeros(output.shape, device=output.device, dtype=torch.float32)
             predicted_segmentation_onehot.scatter_(1, output_seg, 1)
             del output_seg
+
+        del data
 
         if self.label_manager.has_ignore_label:
             if not self.label_manager.has_regions:
@@ -1269,6 +1272,20 @@ class nnUNetTrainer(object):
             {f"dice_per_region_{region}": dice for region, dice in outputs_collated["dice_per_region"].items()},
             step=self.current_epoch,
         )
+
+    def save_wandb_image(self, inputs, outputs, labels, image_name: str):
+        class_labels = {v: k for k, v in self.label_manager.label_dict.items()}
+
+        for i in range(inputs.shape[0]):
+            wb_image = wandb.Image(
+                inputs[i][0].cpu().numpy(),
+                masks={
+                    "predictions": {"mask_data": outputs[i][0].cpu().numpy(), "class_labels": class_labels},
+                    "ground_truth": {"mask_data": labels[i][0].cpu().numpy(), "class_labels": class_labels},
+                },
+            )
+
+            wandb.log({image_name: wb_image})
 
     def on_epoch_start(self):
         self.logger.log("epoch_start_timestamps", time(), self.current_epoch)
