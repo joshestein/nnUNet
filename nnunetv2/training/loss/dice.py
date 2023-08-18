@@ -214,22 +214,22 @@ def get_dice_per_region(
 def _get_dice_for_2d_slices(tp: torch.tensor, fp: torch.tensor, fn: torch.tensor, slice_regions: list[str]):
     regions = ("apex", "mid", "base")
 
-    # Collect slice indices for each region
-    slice_parts = {location: [] for location in regions}
-    for i, location in enumerate(slice_regions):
-        slice_parts[location].append(i)
+    # Collect slice indices for each region. For example {"apex": [1, 2, 3], "mid": [4, 5, 6], "base": [7, 8, 9]}
+    slice_parts = {region: [] for region in regions}
+    for i, region in enumerate(slice_regions):
+        slice_parts[region].append(i)
 
-    dice_per_region = {location: [] for location in regions}
+    dice_per_region = {region: [] for region in regions}
 
     # Get the dice for each region
-    for location, indices in slice_parts.items():
+    for region, indices in slice_parts.items():
         part_tp = tp[indices]
         part_fp = fp[indices]
         part_fn = fn[indices]
 
         numerator = torch.sum(2 * part_tp + EPSILON, dim=(0, 2, 3))
         denominator = torch.sum(2 * part_tp + part_fp + part_fn + EPSILON, dim=(0, 2, 3))
-        dice_per_region[location] = (numerator / denominator).float().tolist()
+        dice_per_region[region] = (numerator / denominator).float().tolist()
 
     return dice_per_region
 
