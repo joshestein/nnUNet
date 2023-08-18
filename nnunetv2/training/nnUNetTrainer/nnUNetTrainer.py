@@ -785,7 +785,11 @@ class nnUNetTrainer(object):
                 initial_patch_size,
                 self.configuration_manager.patch_size,
                 self.label_manager,
-                oversample_foreground_percent=self.oversample_foreground_percent,
+                # Prevent oversampling foreground if we are using region-based training.
+                # For example, if we only want to train on apical slices, we don't want to oversample other regions.
+                oversample_foreground_percent=0.0
+                if len(self.slice_remover.sample_regions) < 3
+                else self.oversample_foreground_percent,
                 sampling_probabilities=None,
                 pad_sides=None,
                 sample_regions=self.slice_remover.sample_regions,
