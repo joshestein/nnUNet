@@ -201,8 +201,8 @@ def get_dice_per_region(
 ) -> dict[str, list[float]]:
     """Calculates and returns the Dice score for the apical, mid and basal sections of the heart.
     If slice_regions is empty, the data is expected in a 5D tensor (batch, class, slices, height, width).
-    Otherwise, the data is expected in a 4D tensor (batch, class, height, width), and the slice_regions are used to determine
-    which batch"""
+    Otherwise, the data is expected in a 4D tensor (batch, class, height, width), and the slice_regions are used to
+    determine the contributing slices for each region."""
     assert tp.shape == fp.shape == fn.shape
 
     if len(slice_regions):
