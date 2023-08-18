@@ -385,19 +385,23 @@ def run_training_entry():
         dataset = "unknown"
 
     for num_training_cases, num_slices in zip(num_cases, slices):
-        slice_remover = SliceRemover(num_slices=num_slices)
+        slice_remover = SliceRemover(num_slices=num_slices, sample_regions=sample_regions)
+
+        cases_str = f"num_training_cases_{num_training_cases:03d}" if num_training_cases is not None else ""
+        slices_str = f"num_slices_{num_slices}" if num_slices is not None else ""
+        regions_str = f"{'_'.join(sample_regions)}" if len(sample_regions) < 3 else ""
+
         wandb_config = {
             "architecture": "nnUNet",
             "dataset": dataset,
-            # "num_training_cases": num_training_cases,
-            "num_slices": num_slices,
             "num_training_cases": num_training_cases,
-            # "sample_regions": sample_regions,
+            "num_slices": num_slices,
+            "sample_regions": sample_regions,
             "dimensions": args.configuration,
         }
         wandb.init(
             project=f"{dataset}-nnUNet-{args.configuration}-slice_reduction",
-            name=f"num_training_cases_{num_training_cases}_num_slices_{num_slices}",
+            name=f"{'_'.join((cases_str, slices_str, regions_str))}",
             config=wandb_config,
             tags=["limited_data", "limited_slices", "integer_slices", "proportions"],
             reinit=True,

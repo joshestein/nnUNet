@@ -150,18 +150,19 @@ class nnUNetTrainer(object):
         self.preprocessed_dataset_folder_base = (
             join(nnUNet_preprocessed, self.plans_manager.dataset_name) if nnUNet_preprocessed is not None else None
         )
+
+        cases_str = f"num_training_cases_{num_training_cases:03d}" if num_training_cases is not None else ""
+        slices_str = f"num_slices_{self.slice_remover.num_slices}" if self.slice_remover.num_slices is not None else ""
+        regions_str = (
+            f"{'_'.join(self.slice_remover.sample_regions)}" if len(self.slice_remover.sample_regions) < 3 else ""
+        )
+
         self.output_folder_base = (
             join(
                 nnUNet_results,
                 self.plans_manager.dataset_name,
                 self.__class__.__name__ + "__" + self.plans_manager.plans_name + "__" + configuration,
-                f"num_training_cases_{num_training_cases}",
-                f"percentage_slices_{self.slice_remover.percentage_slices}",
-                (
-                    f"slice_regions_{self.slice_remover.sample_regions}"
-                    if len(self.slice_remover.sample_regions) < 3
-                    else ""
-                ),
+                "_".join((cases_str, slices_str, regions_str)),
             )
             if nnUNet_results is not None
             else None
