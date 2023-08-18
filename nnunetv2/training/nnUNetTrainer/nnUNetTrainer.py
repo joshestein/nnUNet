@@ -1151,7 +1151,6 @@ class nnUNetTrainer(object):
         # So autocast will only be active if we have a cuda device.
         with autocast(self.device.type, enabled=True) if self.device.type == "cuda" else dummy_context():
             output = self.network(data)
-            del data
             l = self.loss(output, target)
 
         # we only need the output with the highest output resolution
