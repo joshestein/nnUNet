@@ -1279,18 +1279,32 @@ class nnUNetTrainer(object):
         )
 
     def save_wandb_image(self, inputs, outputs, labels, image_name: str):
+        if inputs.shape == 4:
+            self._log_wandb_image(
+                inputs[0][0].cpu().numpy(), outputs[0][0].cpu().numpy(), labels[0][0].cpu().numpy(), image_name
+            )
+            return
+
+        # Batches of 3D volumes. We extract a slices from the apical, mid and basal regions and plot all 3.
+        slices = inputs.shape[2]
+        for i in range(3):
+            region_input = inputs[0][0][(slices // 3) * (i + 1)]
+            prediction = outputs[0][0][(slices // 3) * (i + 1)]
+            label = labels[0][0][(slices // 3) * (i + 1)]
+
+            self._log_wandb_image(region_input.cpu().numpy(), prediction.cpu().numpy(), label.cpu().numpy(), image_name)
+
+    def _log_wandb_image(self, image, output, label, image_name):
         class_labels = {v: k for k, v in self.label_manager.label_dict.items()}
 
-        for i in range(inputs.shape[0]):
-            wb_image = wandb.Image(
-                inputs[i][0].cpu().numpy(),
-                masks={
-                    "predictions": {"mask_data": outputs[i][0].cpu().numpy(), "class_labels": class_labels},
-                    "ground_truth": {"mask_data": labels[i][0].cpu().numpy(), "class_labels": class_labels},
-                },
-            )
-
-            wandb.log({image_name: wb_image})
+        wb_image = wandb.Image(
+            image,
+            masks={
+                "predictions": {"mask_data": output, "class_labels": class_labels},
+                "ground_truth": {"mask_data": label, "class_labels": class_labels},
+            },
+        )
+        wandb.log({image_name: wb_image})
 
     def on_epoch_start(self):
         self.logger.log("epoch_start_timestamps", time(), self.current_epoch)
