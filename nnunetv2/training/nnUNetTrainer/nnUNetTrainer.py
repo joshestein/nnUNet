@@ -1140,7 +1140,7 @@ class nnUNetTrainer(object):
     def on_validation_epoch_start(self):
         self.network.eval()
 
-    def validation_step(self, batch: dict) -> dict:
+    def validation_step(self, batch: dict, batch_id: int) -> dict:
         data = batch["data"]
         target = batch["target"]
 
@@ -1170,7 +1170,8 @@ class nnUNetTrainer(object):
         else:
             # no need for softmax
             output_seg = output.argmax(1)[:, None]
-            self.save_wandb_image(inputs=data, outputs=output_seg, labels=target, image_name="validation")
+            if batch_id == 0:
+                self.save_wandb_image(inputs=data, outputs=output_seg, labels=target, image_name="validation")
             predicted_segmentation_onehot = torch.zeros(output.shape, device=output.device, dtype=torch.float32)
             predicted_segmentation_onehot.scatter_(1, output_seg, 1)
             del output_seg
