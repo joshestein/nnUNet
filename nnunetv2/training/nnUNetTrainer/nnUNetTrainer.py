@@ -223,7 +223,7 @@ class nnUNetTrainer(object):
             "training_log_%d_%d_%d_%02.0d_%02.0d_%02.0d.txt"
             % (timestamp.year, timestamp.month, timestamp.day, timestamp.hour, timestamp.minute, timestamp.second),
         )
-        self.logger = nnUNetLogger()
+        self.logger = nnUNetLogger(verbose=True)
 
         ### placeholders
         self.dataloader_train = self.dataloader_val = None  # see on_train_start
