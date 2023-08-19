@@ -1601,7 +1601,7 @@ class nnUNetTrainer(object):
                 self.on_validation_epoch_start()
                 val_outputs = []
                 for batch_id in range(self.num_val_iterations_per_epoch):
-                    val_outputs.append(self.validation_step(next(self.dataloader_val)))
+                    val_outputs.append(self.validation_step(next(self.dataloader_val), batch_id))
                 self.on_validation_epoch_end(val_outputs)
 
             self.on_epoch_end()
