@@ -1304,7 +1304,7 @@ class nnUNetTrainer(object):
                 "ground_truth": {"mask_data": label, "class_labels": class_labels},
             },
         )
-        wandb.log({image_name: wb_image})
+        wandb.log({image_name: wb_image}, step=self.current_epoch)
 
     def on_epoch_start(self):
         self.logger.log("epoch_start_timestamps", time(), self.current_epoch)
