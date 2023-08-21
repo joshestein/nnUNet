@@ -162,7 +162,7 @@ class nnUNetTrainer(object):
                 nnUNet_results,
                 self.plans_manager.dataset_name,
                 self.__class__.__name__ + "__" + self.plans_manager.plans_name + "__" + configuration,
-                "_".join((cases_str, slices_str, regions_str)),
+                "_".join(filter(None, (cases_str, slices_str, regions_str))),
             )
             if nnUNet_results is not None
             else None
