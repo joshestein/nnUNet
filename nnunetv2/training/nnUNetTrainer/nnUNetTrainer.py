@@ -1279,7 +1279,7 @@ class nnUNetTrainer(object):
         )
 
     def save_wandb_image(self, inputs, outputs, labels, image_name: str):
-        if inputs.shape == 4:
+        if len(inputs.shape) == 4:
             self._log_wandb_image(
                 inputs[0][0].cpu().numpy(), outputs[0][0].cpu().numpy(), labels[0][0].cpu().numpy(), image_name
             )
