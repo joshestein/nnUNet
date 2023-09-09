@@ -56,7 +56,7 @@ def integer_slice_region_generator(output_folder: str):
             "-o",
             os.path.join(output_folder, f"num_slices_{num_slices}"),
         ]
-        for num_slices in [1, 2, 4, 8, 10, 14, 16, 20]
+        for num_slices in [1, 2, 4, 5, 8, 10, 13, 14, 16, 20]
     )
 
 

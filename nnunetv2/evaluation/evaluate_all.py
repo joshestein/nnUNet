@@ -36,7 +36,9 @@ def slice_region_generator(output_folder: str):
 
 
 def integer_slice_region_generator(output_folder: str):
-    return (os.path.join(output_folder, f"num_slices_{num_slices}") for num_slices in [1, 2, 4, 8, 10, 14, 16, 20])
+    return (
+        os.path.join(output_folder, f"num_slices_{num_slices}") for num_slices in [1, 2, 4, 5, 6, 8, 10, 13, 14, 16, 20]
+    )
 
 
 def percentage_slices_generator(output_folder: str):
