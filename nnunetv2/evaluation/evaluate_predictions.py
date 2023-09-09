@@ -1,3 +1,4 @@
+import math
 import multiprocessing
 import numpy as np
 import os
@@ -12,7 +13,6 @@ from nnunetv2.imageio.reader_writer_registry import (
     determine_reader_writer_from_dataset_json,
     determine_reader_writer_from_file_ending,
 )
-
 # the Evaluator class of the previous nnU-Net was great and all but man was it overengineered. Keep it simple
 from nnunetv2.utilities.json_export import recursive_fix_for_json_export
 from nnunetv2.utilities.plans_handling.plans_handler import PlansManager
@@ -102,22 +102,31 @@ def compute_metrics(
     spacing_mm = seg_ref_dict["spacing"]
 
     ignore_mask = seg_ref == ignore_label if ignore_label is not None else None
+    results = {"reference_file": reference_file, "prediction_file": prediction_file, "metrics": {}}
 
-    results = {}
-    results["reference_file"] = reference_file
-    results["prediction_file"] = prediction_file
-    results["metrics"] = {}
     for r in labels_or_regions:
         results["metrics"][r] = {}
         mask_ref = region_or_label_to_mask(seg_ref, r)
         mask_pred = region_or_label_to_mask(seg_pred, r)
         tp, fp, fn, tn = compute_tp_fp_fn_tn(mask_ref, mask_pred, ignore_mask)
+
         if tp + fp + fn == 0:
             results["metrics"][r]["Dice"] = np.nan
             results["metrics"][r]["IoU"] = np.nan
         else:
             results["metrics"][r]["Dice"] = 2 * tp / (2 * tp + fp + fn)
             results["metrics"][r]["IoU"] = tp / (tp + fp + fn)
+
+        slices = mask_ref.shape[1]
+        slices_per_region = int(math.ceil(slices / 3))  # We divide the entire volume into 3 regions: base, mid, apex
+        for i, region in enumerate(["base", "mid", "apex"]):
+            start_slice = i * slices_per_region
+            end_slice = (i + 1) * slices_per_region
+            tp_region, fp_region, fn_region, _ = compute_tp_fp_fn_tn(
+                mask_ref[:, start_slice:end_slice, ...], mask_pred[:, start_slice:end_slice, ...], ignore_mask
+            )
+            results["metrics"][r][f"dice_region_{region}"] = 2 * tp_region / (2 * tp_region + fp_region + fn_region)
+
         results["metrics"][r]["FP"] = fp
         results["metrics"][r]["TP"] = tp
         results["metrics"][r]["FN"] = fn
