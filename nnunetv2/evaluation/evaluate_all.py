@@ -75,7 +75,11 @@ def main():
             proportion_balance = proportion_generator(dataset_id, base_output_folder)
 
             for pred_folder in chain(
-                num_cases_generator, slice_generator, slice_percentage_generator, integer_slices, proportion_balance
+                num_cases_generator,
+                slice_generator,
+                # slice_percentage_generator,
+                integer_slices,
+                proportion_balance,
             ):
                 try:
                     run_subprocess("evaluate_predictions.py", build_args(gt_folder, pred_folder))
