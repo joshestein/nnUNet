@@ -1,4 +1,3 @@
-import math
 import os
 import socket
 import torch.cuda
@@ -367,64 +366,71 @@ def run_training_entry():
     # 4 * 160 volumes = 640
     # 3 * 240 volumes = 720
     # Average = (640 + 720) / 2 = 680
-    proportion_constant = 680
+    proportion_constant = 2120
     num_cases = None
     slices = None
 
     if args.dataset_name_or_id == "114":
         dataset = "MNMs"
-        num_cases = [240, 192, 160, 144, 120, 100, 80, 65, 50]
-        slices = [math.ceil(proportion_constant / v) for v in num_cases]
+        # num_cases = [240, 192, 160, 144, 120, 100, 80, 65, 50]
+        num_cases = [240]
+        # slices = [math.ceil(proportion_constant / v) for v in num_cases]
+        slices = [1, 2, 3, 5, 10, 13]
     elif args.dataset_name_or_id == "27":
         dataset = "ACDC"
-        num_cases = [160, 144, 120, 100, 80, 65, 50, 40, 35]
-        slices = [math.ceil(proportion_constant / v) for v in num_cases]
+        # num_cases = [160, 144, 120, 100, 80, 65, 50, 40, 35]
+        num_cases = [160]
+        # slices = [math.ceil(proportion_constant / v) for v in num_cases]
+        slices = [1, 2, 5, 10, 15, 18]
     elif args.dataset_name_or_id == "115":
         dataset = "EMIDEC"
     else:
         dataset = "unknown"
 
-    for num_training_cases, num_slices in zip(num_cases, slices):
-        slice_remover = SliceRemover(num_slices=num_slices, sample_regions=sample_regions)
+    for num_training_cases in num_cases:
+        for num_slices in slices:
+            for sample_regions in (("apex", "mid"), ("mid", "base"), ("apex", "base"), ["apex"], ["mid"], ["base"]):
+                slice_remover = SliceRemover(num_slices=num_slices, sample_regions=sample_regions)
 
-        cases_str = f"num_training_cases_{num_training_cases:03d}" if num_training_cases is not None else ""
-        slices_str = f"num_slices_{num_slices}" if num_slices is not None else ""
-        regions_str = f"{'_'.join(sample_regions)}" if len(sample_regions) < 3 else ""
+                cases_str = f"num_training_cases_{num_training_cases:03d}" if num_training_cases is not None else ""
+                slices_str = f"num_slices_{num_slices}" if num_slices is not None else ""
+                regions_str = f"{'_'.join(sample_regions)}" if len(sample_regions) < 3 else ""
 
-        wandb_config = {
-            "architecture": "nnUNet",
-            "dataset": dataset,
-            "num_training_cases": num_training_cases,
-            "num_slices": num_slices,
-            "sample_regions": sample_regions,
-            "dimensions": args.configuration,
-        }
-        wandb.init(
-            project=f"{dataset}-nnUNet-{args.configuration}-slice_reduction",
-            name=f"{'_'.join((cases_str, slices_str, regions_str))}",
-            config=wandb_config,
-            tags=["limited_data", "limited_slices", "integer_slices", "proportions"],
-            reinit=True,
-        )
-        args.num_training_cases = num_training_cases
-        run_training(
-            args.dataset_name_or_id,
-            args.configuration,
-            args.fold,
-            args.tr,
-            args.p,
-            args.pretrained_weights,
-            args.num_gpus,
-            args.use_compressed,
-            args.npz,
-            args.c,
-            args.val,
-            args.disable_checkpointing,
-            args.num_training_cases,
-            device=device,
-            slice_remover=slice_remover,
-        )
-        wandb.finish()
+                wandb_config = {
+                    "architecture": "nnUNet",
+                    "dataset": dataset,
+                    "num_training_cases": num_training_cases,
+                    "num_slices": num_slices,
+                    "sample_regions": sample_regions,
+                    "dimensions": args.configuration,
+                }
+                wandb.init(
+                    project=f"{dataset}-nnUNet-{args.configuration}-slice_reduction",
+                    name=f"{'_'.join(filter(None, (cases_str, slices_str, regions_str)))}",
+                    config=wandb_config,
+                    tags=["limited_data", "limited_slices", "integer_slices"],
+                    reinit=True,
+                    mode="disabled",
+                )
+                args.num_training_cases = num_training_cases
+                run_training(
+                    args.dataset_name_or_id,
+                    args.configuration,
+                    args.fold,
+                    args.tr,
+                    args.p,
+                    args.pretrained_weights,
+                    args.num_gpus,
+                    args.use_compressed,
+                    args.npz,
+                    args.c,
+                    args.val,
+                    args.disable_checkpointing,
+                    args.num_training_cases,
+                    device=device,
+                    slice_remover=slice_remover,
+                )
+                wandb.finish()
 
 
 if __name__ == "__main__":
