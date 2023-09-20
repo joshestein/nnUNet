@@ -48,8 +48,7 @@ def percentage_slices_generator(output_folder: str):
     )
 
 
-def proportion_generator(dataset_id: int, output_folder: str):
-    proportion_constant = 1360
+def proportion_generator(dataset_id: int, output_folder: str, proportion_constant: int = 1360):
     if dataset_id == 114:
         num_cases = [240, 192, 160, 144, 120, 100]
     else:
