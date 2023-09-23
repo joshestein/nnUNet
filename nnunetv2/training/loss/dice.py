@@ -197,7 +197,7 @@ def get_tp_fp_fn_tn(net_output, gt, axes=None, mask=None, square=False):
 
 
 def get_dice_per_region(
-    tp: torch.tensor, fp: torch.tensor, fn: torch.tensor, slice_regions: list[str]
+    tp: torch.Tensor, fp: torch.Tensor, fn: torch.Tensor, slice_regions: list[str]
 ) -> dict[str, list[float]]:
     """Calculates and returns the Dice score for the apical, mid and basal sections of the heart.
     If slice_regions is empty, the data is expected in a 5D tensor (batch, class, slices, height, width).
@@ -211,7 +211,7 @@ def get_dice_per_region(
         return _get_dice_for_3d_volume(tp, fp, fn)
 
 
-def _get_dice_for_2d_slices(tp: torch.tensor, fp: torch.tensor, fn: torch.tensor, slice_regions: list[str]):
+def _get_dice_for_2d_slices(tp: torch.Tensor, fp: torch.Tensor, fn: torch.Tensor, slice_regions: list[str]):
     regions = ("apex", "mid", "base")
 
     # Collect slice indices for each region. For example {"apex": [1, 2, 3], "mid": [4, 5, 6], "base": [7, 8, 9]}

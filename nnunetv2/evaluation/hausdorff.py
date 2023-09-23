@@ -4,7 +4,7 @@ from scipy.spatial.distance import directed_hausdorff
 from statistics import mean
 
 
-def get_symmetric_hausdorff_per_class(prediction: torch.tensor, target: torch.tensor):
+def get_symmetric_hausdorff_per_class(prediction: torch.Tensor, target: torch.Tensor):
     """Calculates the symmetric HD between two tensors. Expects the input tensors to be 4D or 5D, with the second
     dimension corresponding to the number of output classes. Returns the average HD between the two tensors for each
     class, as an array.
